@@ -82,4 +82,19 @@ def calculate():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    import os
+    import socket
+
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "5000"))
+
+    print(f"Local:   http://127.0.0.1:{port}/")
+    try:
+        lan_ip = socket.gethostbyname(socket.gethostname())
+    except OSError:
+        lan_ip = None
+    if lan_ip and not lan_ip.startswith("127."):
+        print(f"Network: http://{lan_ip}:{port}/")
+    print("Press CTRL+C to stop.")
+
+    app.run(host=host, port=port, debug=os.environ.get("FLASK_DEBUG") == "1")
