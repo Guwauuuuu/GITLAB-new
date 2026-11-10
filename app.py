@@ -90,11 +90,41 @@ def calculate():
 if __name__ == "__main__":
     import os
     import socket
+    import threading
+    import urllib.request
+    import webbrowser
 
     host = os.environ.get("HOST", "127.0.0.1")
-    port = int(os.environ.get("PORT", "5000"))
+    start_port = int(os.environ.get("PORT", "5000"))
+    open_browser = os.environ.get("OPEN_BROWSER") == "1"
 
-    print(f"Local:   http://127.0.0.1:{port}/")
+    def is_healthy(port):
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=1.5) as resp:
+                return resp.status == 200
+        except Exception:
+            return False
+
+    def is_free(port):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.bind((host, port))
+                return True
+            except OSError:
+                return False
+
+    if open_browser and is_healthy(start_port):
+        print(f"App already running at http://127.0.0.1:{start_port}/")
+        webbrowser.open(f"http://127.0.0.1:{start_port}/")
+        raise SystemExit(0)
+
+    port = next((p for p in range(start_port, start_port + 20) if is_free(p)), None)
+    if port is None:
+        print(f"No free port between {start_port} and {start_port + 19}.")
+        raise SystemExit(1)
+
+    url = f"http://127.0.0.1:{port}/"
+    print(f"Local:   {url}")
     try:
         lan_ip = socket.gethostbyname(socket.gethostname())
     except OSError:
@@ -102,5 +132,8 @@ if __name__ == "__main__":
     if lan_ip and not lan_ip.startswith("127."):
         print(f"Network: http://{lan_ip}:{port}/")
     print("Press CTRL+C to stop.")
+
+    if open_browser:
+        threading.Timer(1.5, lambda: webbrowser.open(url)).start()
 
     app.run(host=host, port=port, debug=os.environ.get("FLASK_DEBUG") == "1")
