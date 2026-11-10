@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 02: BJT DC Bias Web App — ENG29 2121</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="shell">
+
+  <header class="app-header">
+    <div class="brand">
+      <svg class="chip-icon" viewBox="0 0 48 48" aria-hidden="true">
+        <rect x="12" y="12" width="24" height="24" rx="4" fill="#FFF3C4" stroke="#B8860B" stroke-width="2"/>
+        <rect x="20" y="20" width="8" height="8" rx="1.5" fill="#F2B705" stroke="#B8860B" stroke-width="1.5"/>
+        <g stroke="#B8860B" stroke-width="2" stroke-linecap="round">
+          <path d="M18 12V6M24 12V6M30 12V6M18 42v-6M24 42v-6M30 42v-6M12 18H6M12 24H6M12 30H6M42 18h-6M42 24h-6M42 30h-6"/>
+        </g>
+      </svg>
+      <div>
+        <h1>Lab 02: BJT DC Bias Web App</h1>
+        <p class="subtitle">ENG29 2121 — Common Emitter (Voltage Divider Bias)</p>
+      </div>
+    </div>
+    <div class="course-badge">
+      <span class="code-icon" aria-hidden="true">&lt;/&gt;</span>
+      <span>Computer Programming for<br>Electrical Engineers</span>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <section class="panel inputs-panel" aria-labelledby="inputs-title">
+      <h2 id="inputs-title"><span class="panel-icon" aria-hidden="true">&#9881;</span> Input Parameters</h2>
+      {% if errors %}
+        <div class="errors" role="alert">
+          {% for e in errors %}<div class="error">{{ e }}</div>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" action="/calculate">
+        <div class="field">
+          <label for="vcc_v">V<sub>CC</sub> <span>(Supply Voltage)</span></label>
+          <div class="control">
+            <input id="vcc_v" type="number" step="any" name="vcc_v" value="{{ raw.vcc_v }}">
+            <span class="unit">V</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="r1_ohm">R<sub>1</sub> <span>(Upper Divider)</span></label>
+          <div class="control with-select">
+            <input id="r1_ohm" type="number" step="any" name="r1_ohm" value="{{ raw.r1_ohm }}">
+            <select name="r1_ohm_unit" aria-label="R1 unit">
+              <option value="ohm" {{ 'selected' if units.r1_ohm == 'ohm' else '' }}>&#937;</option>
+              <option value="kohm" {{ 'selected' if units.r1_ohm == 'kohm' else '' }}>k&#937;</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="r2_ohm">R<sub>2</sub> <span>(Lower Divider)</span></label>
+          <div class="control with-select">
+            <input id="r2_ohm" type="number" step="any" name="r2_ohm" value="{{ raw.r2_ohm }}">
+            <select name="r2_ohm_unit" aria-label="R2 unit">
+              <option value="ohm" {{ 'selected' if units.r2_ohm == 'ohm' else '' }}>&#937;</option>
+              <option value="kohm" {{ 'selected' if units.r2_ohm == 'kohm' else '' }}>k&#937;</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="rc_ohm">R<sub>C</sub> <span>(Collector Resistor)</span></label>
+          <div class="control with-select">
+            <input id="rc_ohm" type="number" step="any" name="rc_ohm" value="{{ raw.rc_ohm }}">
+            <select name="rc_ohm_unit" aria-label="RC unit">
+              <option value="ohm" {{ 'selected' if units.rc_ohm == 'ohm' else '' }}>&#937;</option>
+              <option value="kohm" {{ 'selected' if units.rc_ohm == 'kohm' else '' }}>k&#937;</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="re_ohm">R<sub>E</sub> <span>(Emitter Resistor)</span></label>
+          <div class="control with-select">
+            <input id="re_ohm" type="number" step="any" name="re_ohm" value="{{ raw.re_ohm }}">
+            <select name="re_ohm_unit" aria-label="RE unit">
+              <option value="ohm" {{ 'selected' if units.re_ohm == 'ohm' else '' }}>&#937;</option>
+              <option value="kohm" {{ 'selected' if units.re_ohm == 'kohm' else '' }}>k&#937;</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="beta">&#946; <span>(Current Gain)</span></label>
+          <div class="control">
+            <input id="beta" type="number" step="any" name="beta" value="{{ raw.beta }}">
+            <span class="unit">&ndash;</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="vbe_v">V<sub>BE</sub> <span>(Base&ndash;Emitter Voltage)</span></label>
+          <div class="control">
+            <input id="vbe_v" type="number" step="any" name="vbe_v" value="{{ raw.vbe_v }}">
+            <span class="unit">V</span>
+          </div>
+        </div>
+
+        <button type="submit">Calculate DC Bias</button>
+      </form>
+    </section>
+
+    <section class="panel circuit-panel" aria-labelledby="circuit-title">
+      <h2 id="circuit-title"><span class="panel-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v7M12 15v7M2 12h7M15 12h7" fill="none" stroke="currentColor" stroke-width="2"/></svg></span> Circuit: Common-Emitter Amplifier</h2>
+      <svg class="circuit" viewBox="30 10 470 350" role="img" aria-label="Voltage-divider biased NPN common-emitter amplifier">
+        <line x1="140" y1="40" x2="372" y2="40" stroke="#6B4E00" stroke-width="2"/>
+        <circle cx="372" cy="40" r="3.5" fill="#6B4E00"/>
+        <line x1="140" y1="32" x2="140" y2="48" stroke="#6B4E00" stroke-width="2"/>
+        <text x="152" y="28" font-size="14" fill="#6B4E00">V<tspan baseline-shift="sub" font-size="10">CC</tspan> = 12 V</text>
+
+        <line x1="140" y1="40" x2="140" y2="80" stroke="#6B4E00" stroke-width="2"/>
+        <rect x="134" y="80" width="12" height="40" fill="#FFFFFF" stroke="#6B4E00" stroke-width="2"/>
+        <text x="126" y="105" font-size="14" text-anchor="end" fill="#4A3A00">R1 = 100 k&#937;</text>
+        <line x1="140" y1="120" x2="140" y2="240" stroke="#6B4E00" stroke-width="2"/>
+        <rect x="134" y="240" width="12" height="40" fill="#FFFFFF" stroke="#6B4E00" stroke-width="2"/>
+        <text x="126" y="265" font-size="14" text-anchor="end" fill="#4A3A00">R2 = 22 k&#937;</text>
+        <line x1="140" y1="280" x2="140" y2="330" stroke="#6B4E00" stroke-width="2"/>
+
+        <circle cx="140" cy="190" r="3.5" fill="#6B4E00"/>
+        <line x1="140" y1="190" x2="312" y2="190" stroke="#6B4E00" stroke-width="2"/>
+        <text x="164" y="180" font-size="14" fill="#4A3A00">&#946; = 100</text>
+        <text x="164" y="214" font-size="14" fill="#4A3A00">V<tspan baseline-shift="sub" font-size="10">BE</tspan> = 0.70 V</text>
+
+        <circle cx="340" cy="190" r="42" fill="#FFF9E6" stroke="#6B4E00" stroke-width="2"/>
+        <line x1="312" y1="160" x2="312" y2="220" stroke="#6B4E00" stroke-width="4"/>
+        <line x1="312" y1="172" x2="372" y2="142" stroke="#6B4E00" stroke-width="2"/>
+        <line x1="312" y1="208" x2="372" y2="238" stroke="#6B4E00" stroke-width="2"/>
+        <polygon points="372,238 360,236 365,226" fill="#6B4E00"/>
+        <text x="318" y="124" font-size="14" fill="#4A3A00">Q1</text>
+        <text x="318" y="138" font-size="12" fill="#7A6A45">NPN</text>
+
+        <line x1="372" y1="142" x2="372" y2="40" stroke="#6B4E00" stroke-width="2"/>
+        <rect x="366" y="70" width="12" height="40" fill="#FFFFFF" stroke="#6B4E00" stroke-width="2"/>
+        <text x="388" y="95" font-size="14" fill="#4A3A00">RC = 2.2 k&#937;</text>
+
+        <line x1="372" y1="238" x2="372" y2="330" stroke="#6B4E00" stroke-width="2"/>
+        <rect x="366" y="255" width="12" height="40" fill="#FFFFFF" stroke="#6B4E00" stroke-width="2"/>
+        <text x="388" y="280" font-size="14" fill="#4A3A00">RE = 1.0 k&#937;</text>
+
+        <line x1="140" y1="330" x2="372" y2="330" stroke="#6B4E00" stroke-width="2"/>
+        <line x1="236" y1="330" x2="236" y2="338" stroke="#6B4E00" stroke-width="2"/>
+        <line x1="222" y1="338" x2="250" y2="338" stroke="#6B4E00" stroke-width="2"/>
+        <line x1="228" y1="345" x2="244" y2="345" stroke="#6B4E00" stroke-width="2"/>
+        <line x1="234" y1="352" x2="238" y2="352" stroke="#6B4E00" stroke-width="2"/>
+        <text x="258" y="345" font-size="14" fill="#4A3A00">GND</text>
+
+        <text x="430" y="160" font-size="14" fill="#4A3A00">V<tspan baseline-shift="sub" font-size="10">CE</tspan> = ?</text>
+      </svg>
+      <p class="circuit-note">Example resistor values shown. Results are computed from the values you enter.</p>
+    </section>
+
+    <section class="panel results-panel" aria-labelledby="results-title">
+      <h2 id="results-title"><span class="panel-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V11M10 20V4M16 20v-6M22 20H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span> DC Bias Results</h2>
+
+      {% if base %}
+        <table class="result-table">
+          <tr><th scope="row">V<sub>B</sub></th><td>{{ "%.3f"|format(base.vb_v) }} V</td></tr>
+          <tr><th scope="row">V<sub>E</sub></th><td>{{ "%.3f"|format(base.ve_v) }} V</td></tr>
+          <tr><th scope="row">V<sub>C</sub></th><td>{{ "%.3f"|format(base.vc_v) }} V</td></tr>
+          <tr><th scope="row">V<sub>CE</sub></th><td>{{ "%.3f"|format(base.vce_v) }} V</td></tr>
+          <tr><th scope="row">I<sub>B</sub></th><td>{{ "%.1f"|format(base.ib_a * 1e6) }} &#181;A</td></tr>
+          <tr><th scope="row">I<sub>C</sub></th><td>{{ "%.2f"|format(base.ic_a * 1e3) }} mA</td></tr>
+          <tr><th scope="row">I<sub>E</sub></th><td>{{ "%.2f"|format(base.ie_a * 1e3) }} mA</td></tr>
+        </table>
+
+        <p class="thevenin">
+          Thevenin equivalent: V<sub>BB</sub> = {{ "%.3f"|format(base.vbb_v) }} V &middot;
+          R<sub>B</sub> = {% if base.rb_ohm >= 1000 %}{{ "%.2f"|format(base.rb_ohm / 1000) }} k&#937;{% else %}{{ "%.2f"|format(base.rb_ohm) }} &#937;{% endif %}
+        </p>
+
+        {% if base.region == 'active' %}
+          <div class="status active">
+            <span class="status-icon" aria-hidden="true">&#10003;</span>
+            <div>
+              <strong>Active region approximation OK</strong>
+              <p>V<sub>CE</sub> = {{ "%.3f"|format(base.vce_v) }} V &gt; 0.2 V (transistor in active region)</p>
+            </div>
+          </div>
+        {% elif base.region == 'cutoff' %}
+          <div class="status cutoff">
+            <span class="status-icon" aria-hidden="true">!</span>
+            <div>
+              <strong>Cutoff region</strong>
+              <p>I<sub>B</sub> &#8804; 0 (V<sub>BB</sub> &#8804; V<sub>BE</sub>) &mdash; not a usable bias point.</p>
+            </div>
+          </div>
+        {% else %}
+          <div class="status saturation">
+            <span class="status-icon" aria-hidden="true">!</span>
+            <div>
+              <strong>Saturation region</strong>
+              <p>V<sub>CE</sub> &lt; 0.2 V &mdash; not a usable bias point.</p>
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="crosscheck">
+          <h3>Independent check (nodal)</h3>
+          <p class="agree {{ 'pass' if report.agree else 'fail' }}">
+            {% if report.agree %}&#10003; Matches{% else %}&#10007; Differs{% endif %} &mdash;
+            V<sub>CE</sub> {{ "%.3f"|format(base.vce_v) }} V vs {{ "%.3f"|format(nodal.vce_v) }} V
+            (max rel. diff {{ "%.2e"|format(report.max_rel_diff) }})
+          </p>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <p>Enter the circuit values and press <strong>Calculate DC Bias</strong>.</p>
+          <p class="muted">Voltages in V, resistances in &#937; or k&#937;.</p>
+        </div>
+      {% endif %}
+    </section>
+
+  </main>
+
+  <footer class="goal-bar">
+    <span class="goal-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#8A5A00" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="#8A5A00" stroke-width="2"/><circle cx="12" cy="12" r="1.6" fill="#8A5A00"/></svg>
+    </span>
+    <div>
+      <strong>Week 2 Goal</strong>
+      <p>Rough target for this lab: build a Flask web app that takes the circuit parameters, computes the BJT DC bias (V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>, I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub>) for a common-emitter amplifier with voltage-divider bias, and displays the results.</p>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
