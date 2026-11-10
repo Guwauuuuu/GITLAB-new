@@ -1,6 +1,6 @@
 import math
 
-from flask import Flask, render_template, request
+from flask import Flask, redirect, render_template, request, url_for
 
 from bjt import BiasInput, validate, solve_base_loop
 from independent import solve_nodal, compare
@@ -27,6 +27,12 @@ app = Flask(__name__)
 @app.get("/")
 def index():
     return render_template("index.html", raw=DEFAULTS, units=DEFAULT_UNITS)
+
+
+@app.get("/calculate")
+def calculate_form():
+    # Opening or refreshing the results URL directly would otherwise be a 405.
+    return redirect(url_for("index"))
 
 
 @app.post("/calculate")

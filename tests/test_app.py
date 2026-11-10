@@ -25,6 +25,14 @@ class TestAppRoutes(unittest.TestCase):
         for name in ("vcc_v", "r1_ohm", "r2_ohm", "rc_ohm", "re_ohm", "beta", "vbe_v"):
             self.assertIn(name, html)
 
+    def test_get_calculate_redirects_to_form(self):
+        response = self.client.get("/calculate")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/")
+        followed = self.client.get("/calculate", follow_redirects=True)
+        self.assertEqual(followed.status_code, 200)
+        self.assertIn("Input Parameters", followed.data.decode("utf-8"))
+
     def test_valid_post_returns_results_with_units(self):
         data = dict(vcc_v="12", r1_ohm="47000", r2_ohm="10000",
                     rc_ohm="2200", re_ohm="470", beta="150", vbe_v="0.7")
