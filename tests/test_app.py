@@ -1,3 +1,4 @@
+import re
 import unittest
 from app import app
 
@@ -127,6 +128,33 @@ class TestAppRoutes(unittest.TestCase):
         response = self.client.post("/calculate", data=data)
         self.assertEqual(response.status_code, 200)
         self.assertIn("1.13 mA", response.data.decode("utf-8"))
+
+    def test_bias_mode_is_three_radios(self):
+        html = self.client.get("/").data.decode("utf-8")
+        self.assertEqual(html.count('name="mode"'), 3)
+        for value in ("divider", "fixed", "emitter"):
+            self.assertIn(f'id="mode_{value}"', html)
+            self.assertIn(f'value="{value}"', html)
+
+    def test_divider_mode_hides_rb_field(self):
+        html = self.client.get("/").data.decode("utf-8")
+        self.assertRegex(html, r'data-field="rb_ohm"[^>]*hidden')
+
+    def test_fixed_mode_hides_divider_and_re_fields(self):
+        data = dict(mode="fixed", vcc_v="12", rb_ohm="1", rb_ohm_unit="mohm",
+                    rc_ohm="2.2", rc_ohm_unit="kohm", beta="100", vbe_v="0.70")
+        html = self.client.post("/calculate", data=data).data.decode("utf-8")
+        self.assertRegex(html, r'data-field="r1_ohm"[^>]*hidden')
+        self.assertRegex(html, r'data-field="r2_ohm"[^>]*hidden')
+        self.assertRegex(html, r'data-field="re_ohm"[^>]*hidden')
+        self.assertNotRegex(html, r'data-field="rb_ohm"[^>]*hidden')
+
+    def test_every_label_for_matches_an_element_id(self):
+        html = self.client.get("/").data.decode("utf-8")
+        for_ids = set(re.findall(r'<label for="([^"]+)"', html))
+        ids = set(re.findall(r'id="([^"]+)"', html))
+        self.assertTrue(for_ids)
+        self.assertLessEqual(for_ids, ids)
 
 
 if __name__ == "__main__":

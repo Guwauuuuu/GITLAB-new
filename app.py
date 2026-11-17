@@ -26,6 +26,11 @@ MODE_FIELDS = {
     "emitter": ("vcc_v", "rb_ohm", "rc_ohm", "re_ohm", "beta", "vbe_v"),
 }
 
+FIELD_VISIBILITY = {
+    name: tuple(mode for mode, fields in MODE_FIELDS.items() if name in fields)
+    for name in ALL_FIELDS
+}
+
 LABELS = {
     "vcc_v": "VCC",
     "r1_ohm": "R1",
@@ -41,6 +46,11 @@ DEFAULTS = {name: "" for name in ALL_FIELDS}
 DEFAULT_UNITS = {name: "ohm" for name in RESISTOR_FIELDS}
 
 app = Flask(__name__)
+
+
+@app.context_processor
+def inject_form_metadata():
+    return {"field_visibility": FIELD_VISIBILITY}
 
 
 @app.get("/")

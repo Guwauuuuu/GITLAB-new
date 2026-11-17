@@ -40,19 +40,20 @@
       {% endif %}
 
       <form method="post" action="/calculate">
-        <div class="field">
-          <label for="mode">Bias Mode <span>(Circuit Configuration)</span></label>
-          <div class="control">
-            <select id="mode" name="mode">
-              <option value="divider" {{ 'selected' if mode == 'divider' else '' }}>Voltage Divider Bias</option>
-              <option value="fixed" {{ 'selected' if mode == 'fixed' else '' }}>Fixed Bias</option>
-              <option value="emitter" {{ 'selected' if mode == 'emitter' else '' }}>Emitter Bias</option>
-            </select>
+        <fieldset class="mode-field">
+          <legend>Bias Mode <span>(Circuit Configuration)</span></legend>
+          <div class="mode-group" role="radiogroup" aria-label="Bias Mode (Circuit Configuration)">
+            <input type="radio" id="mode_divider" name="mode" value="divider" {{ 'checked' if mode == 'divider' else '' }}>
+            <label for="mode_divider">Voltage Divider Bias</label>
+            <input type="radio" id="mode_fixed" name="mode" value="fixed" {{ 'checked' if mode == 'fixed' else '' }}>
+            <label for="mode_fixed">Fixed Bias</label>
+            <input type="radio" id="mode_emitter" name="mode" value="emitter" {{ 'checked' if mode == 'emitter' else '' }}>
+            <label for="mode_emitter">Emitter Bias</label>
           </div>
-        </div>
-        <p class="circuit-note">Divider uses R1/R2. Fixed and Emitter use RB. RE is used by Divider and Emitter.</p>
+          <p class="circuit-note">Divider uses R1/R2. Fixed and Emitter use RB. RE is used by Divider and Emitter.</p>
+        </fieldset>
 
-        <div class="field">
+        <div class="field" data-field="vcc_v" data-modes="{{ field_visibility.vcc_v|join(' ') }}" {{ 'hidden' if mode not in field_visibility.vcc_v else '' }}>
           <label for="vcc_v">V<sub>CC</sub> <span>(Supply Voltage)</span></label>
           <div class="control">
             <input id="vcc_v" type="number" step="any" name="vcc_v" value="{{ raw.vcc_v }}">
@@ -60,7 +61,7 @@
           </div>
         </div>
 
-        <div class="field">
+        <div class="field" data-field="r1_ohm" data-modes="{{ field_visibility.r1_ohm|join(' ') }}" {{ 'hidden' if mode not in field_visibility.r1_ohm else '' }}>
           <label for="r1_ohm">R<sub>1</sub> <span>(Upper Divider)</span></label>
           <div class="control with-select">
             <input id="r1_ohm" type="number" step="any" name="r1_ohm" value="{{ raw.r1_ohm }}">
@@ -72,7 +73,7 @@
           </div>
         </div>
 
-        <div class="field">
+        <div class="field" data-field="r2_ohm" data-modes="{{ field_visibility.r2_ohm|join(' ') }}" {{ 'hidden' if mode not in field_visibility.r2_ohm else '' }}>
           <label for="r2_ohm">R<sub>2</sub> <span>(Lower Divider)</span></label>
           <div class="control with-select">
             <input id="r2_ohm" type="number" step="any" name="r2_ohm" value="{{ raw.r2_ohm }}">
@@ -84,7 +85,7 @@
           </div>
         </div>
 
-        <div class="field">
+        <div class="field" data-field="rb_ohm" data-modes="{{ field_visibility.rb_ohm|join(' ') }}" {{ 'hidden' if mode not in field_visibility.rb_ohm else '' }}>
           <label for="rb_ohm">R<sub>B</sub> <span>(Base Resistor &mdash; Fixed / Emitter)</span></label>
           <div class="control with-select">
             <input id="rb_ohm" type="number" step="any" name="rb_ohm" value="{{ raw.rb_ohm }}">
@@ -96,7 +97,7 @@
           </div>
         </div>
 
-        <div class="field">
+        <div class="field" data-field="rc_ohm" data-modes="{{ field_visibility.rc_ohm|join(' ') }}" {{ 'hidden' if mode not in field_visibility.rc_ohm else '' }}>
           <label for="rc_ohm">R<sub>C</sub> <span>(Collector Resistor)</span></label>
           <div class="control with-select">
             <input id="rc_ohm" type="number" step="any" name="rc_ohm" value="{{ raw.rc_ohm }}">
@@ -108,7 +109,7 @@
           </div>
         </div>
 
-        <div class="field">
+        <div class="field" data-field="re_ohm" data-modes="{{ field_visibility.re_ohm|join(' ') }}" {{ 'hidden' if mode not in field_visibility.re_ohm else '' }}>
           <label for="re_ohm">R<sub>E</sub> <span>(Emitter Resistor)</span></label>
           <div class="control with-select">
             <input id="re_ohm" type="number" step="any" name="re_ohm" value="{{ raw.re_ohm }}">
@@ -120,7 +121,7 @@
           </div>
         </div>
 
-        <div class="field">
+        <div class="field" data-field="beta" data-modes="{{ field_visibility.beta|join(' ') }}" {{ 'hidden' if mode not in field_visibility.beta else '' }}>
           <label for="beta">&#946; <span>(Current Gain)</span></label>
           <div class="control">
             <input id="beta" type="number" step="any" name="beta" value="{{ raw.beta }}">
@@ -128,7 +129,7 @@
           </div>
         </div>
 
-        <div class="field">
+        <div class="field" data-field="vbe_v" data-modes="{{ field_visibility.vbe_v|join(' ') }}" {{ 'hidden' if mode not in field_visibility.vbe_v else '' }}>
           <label for="vbe_v">V<sub>BE</sub> <span>(Base&ndash;Emitter Voltage)</span></label>
           <div class="control">
             <input id="vbe_v" type="number" step="any" name="vbe_v" value="{{ raw.vbe_v }}">
