@@ -136,18 +136,50 @@ class TestAppRoutes(unittest.TestCase):
             self.assertIn(f'id="mode_{value}"', html)
             self.assertIn(f'value="{value}"', html)
 
-    def test_divider_mode_hides_rb_field(self):
-        html = self.client.get("/").data.decode("utf-8")
-        self.assertRegex(html, r'data-field="rb_ohm"[^>]*hidden')
+    def test_every_mode_renders_all_fields_visible(self):
+        good = {
+            "divider": dict(vcc_v="12", r1_ohm="100", r1_ohm_unit="kohm",
+                            r2_ohm="22", r2_ohm_unit="kohm",
+                            rc_ohm="2.2", rc_ohm_unit="kohm",
+                            re_ohm="1", re_ohm_unit="kohm",
+                            beta="100", vbe_v="0.70"),
+            "fixed": dict(vcc_v="12", rb_ohm="1", rb_ohm_unit="mohm",
+                          rc_ohm="2.2", rc_ohm_unit="kohm", beta="100", vbe_v="0.70"),
+            "emitter": dict(vcc_v="12", rb_ohm="1000", rb_ohm_unit="kohm",
+                            rc_ohm="2.2", rc_ohm_unit="kohm",
+                            re_ohm="1", re_ohm_unit="kohm",
+                            beta="100", vbe_v="0.70"),
+        }
+        for mode, data in good.items():
+            with self.subTest(mode=mode):
+                response = self.client.post("/calculate", data=dict(data, mode=mode))
+                self.assertEqual(response.status_code, 200)
+                html = response.data.decode("utf-8")
+                self.assertNotRegex(html, r'<div class="field"[^>]*\bhidden\b')
+                self.assertEqual(html.count('<div class="field"'), 8)
+                for name in ("vcc_v", "r1_ohm", "r2_ohm", "rb_ohm",
+                             "rc_ohm", "re_ohm", "beta", "vbe_v"):
+                    self.assertIn(f'id="{name}"', html)
 
-    def test_fixed_mode_hides_divider_and_re_fields(self):
-        data = dict(mode="fixed", vcc_v="12", rb_ohm="1", rb_ohm_unit="mohm",
+    def test_fixed_mode_ignores_stale_divider_and_re_values(self):
+        base = dict(mode="fixed", vcc_v="12", rb_ohm="1", rb_ohm_unit="mohm",
                     rc_ohm="2.2", rc_ohm_unit="kohm", beta="100", vbe_v="0.70")
-        html = self.client.post("/calculate", data=data).data.decode("utf-8")
-        self.assertRegex(html, r'data-field="r1_ohm"[^>]*hidden')
-        self.assertRegex(html, r'data-field="r2_ohm"[^>]*hidden')
-        self.assertRegex(html, r'data-field="re_ohm"[^>]*hidden')
-        self.assertNotRegex(html, r'data-field="rb_ohm"[^>]*hidden')
+        stale = dict(base, r1_ohm="abc", r1_ohm_unit="mohm",
+                     r2_ohm="-5", re_ohm="1e")
+        html = self.client.post("/calculate", data=stale).data.decode("utf-8")
+        self.assertNotIn('class="errors"', html)
+        self.assertIn("1.13 mA", html)
+        self.assertIn("9.514 V", html)
+
+    def test_emitter_mode_ignores_stale_divider_values(self):
+        base = dict(mode="emitter", vcc_v="12", rb_ohm="1000", rb_ohm_unit="kohm",
+                    rc_ohm="2.2", rc_ohm_unit="kohm", re_ohm="1", re_ohm_unit="kohm",
+                    beta="100", vbe_v="0.70")
+        stale = dict(base, r1_ohm="abc", r2_ohm="0", r2_ohm_unit="mohm")
+        html = self.client.post("/calculate", data=stale).data.decode("utf-8")
+        self.assertNotIn('class="errors"', html)
+        self.assertIn("1.03 mA", html)
+        self.assertIn("8.705 V", html)
 
     def test_every_label_for_matches_an_element_id(self):
         html = self.client.get("/").data.decode("utf-8")
@@ -204,8 +236,7 @@ class TestAppRoutes(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("RB must be greater than 0", html)
         self.assertRegex(html, r'id="mode_fixed"[^>]*checked')
-        self.assertRegex(html, r'data-field="r1_ohm"[^>]*hidden')
-        self.assertNotRegex(html, r'data-field="rb_ohm"[^>]*hidden')
+        self.assertNotRegex(html, r'<div class="field"[^>]*\bhidden\b')
         self.assertIn('value="kohm" selected', html)
 
     def test_stylesheet_uses_dark_theme_tokens(self):
