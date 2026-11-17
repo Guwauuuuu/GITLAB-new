@@ -33,11 +33,6 @@ function updateCircuit() {
 }
 
 function applyMode(mode) {
-  document.querySelectorAll("[data-field]").forEach((field) => {
-    const modes = (field.dataset.modes || "").split(" ").filter(Boolean);
-    field.hidden = !modes.includes(mode);
-  });
-
   document.querySelectorAll("[data-component]").forEach((group) => {
     const modes = (group.dataset.modes || "").split(" ").filter(Boolean);
     group.classList.toggle("is-hidden", !modes.includes(mode));

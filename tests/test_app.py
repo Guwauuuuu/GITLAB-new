@@ -255,6 +255,14 @@ class TestAppRoutes(unittest.TestCase):
         html = self.client.get("/").data.decode("utf-8")
         self.assertRegex(html, r'<form[^>]*method="post"[^>]*novalidate')
 
+    def test_javascript_does_not_hide_form_fields(self):
+        import pathlib
+        js = pathlib.Path("static/app.js").read_text(encoding="utf-8")
+        self.assertNotIn("[data-field]", js)
+        self.assertNotIn(".hidden", js)
+        self.assertIn("data-component", js)
+        self.assertIn("is-hidden", js)
+
 
 if __name__ == "__main__":
     unittest.main()
