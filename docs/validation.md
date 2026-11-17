@@ -48,3 +48,66 @@ V<sub>CC</sub> = 12 V, R<sub>C</sub> = 2.2 kΩ, β = 100, V<sub>BE</sub> = 0.70 
 
 - หน้าแรกของแอปมี console error 1 รายการตอนโหลด (คาดว่าเป็น favicon 404) ไม่กระทบการคำนวณหรือการส่งฟอร์ม
 - ไฟล์นี้บันทึกผลการตรวจด้วย Browser เท่านั้น ไม่ได้แก้ไขไฟล์โปรแกรมใด ๆ ในรอบนี้
+
+---
+
+# ผลตรวจรอบที่ 2 — Dark UI, Mode Selector, Live Circuit, MΩ
+
+**วันที่ตรวจ:** 2026-11-17
+**เว็บที่ตรวจ:** http://127.0.0.1:5000/ (เซิร์ฟเวอร์ที่รันโค้ดหลังเพิ่ม MΩ / mode selector / live circuit / dark theme)
+**วิธีตรวจ:** Playwright MCP เท่านั้น (ไม่มี `curl` และไม่ได้ใช้ค่าจาก unittest เป็นผลตรวจ)
+**เทสอัตโนมัติประกอบ:** `python -m unittest tests.test_app` → **29 tests OK**
+
+## สิ่งที่เปลี่ยนในรอบนี้
+
+1. Bias Mode เป็นปุ่มเลือก 3 ปุ่มเท่ากัน (Voltage Divider / Fixed / Emitter) แทน `<select>`
+2. ฟอร์มแสดงเฉพาะช่องที่โหมดนั้นใช้ (Divider: R1, R2, R<sub>E</sub> / Fixed: R<sub>B</sub> / Emitter: R<sub>B</sub>, R<sub>E</sub>)
+3. วงจร SVG ใช้ค่าที่ผู้ใช้กรอกจริง ทั้งระหว่างพิมพ์และหลังกด Calculate และซ่อนอุปกรณ์ที่โหมดไม่ใช้
+4. เพิ่มหน่วย `MΩ` ในช่องหน่วยของตัวต้านทานทั้ง 5 ช่อง
+5. ธีมมืด (dark theme) ทั้งหน้าและวงจร
+
+## ลำดับขั้นที่ใช้ตรวจ
+
+1. `browser_navigate` → เปิด `http://127.0.0.1:5000/`
+2. `browser_click` ที่ `<label for="mode_*">` เพื่อเลือกโหมด (ปุ่ม radio ถูกซ่อนด้วยสไตล์ แต่ยังคีย์บอร์ดและ label ใช้งานได้)
+3. `browser_fill_form` → กรอกค่าด้วย selector `input#<ชื่อ field>`
+4. `browser_select_option` → เลือกหน่วย `select#<ชื่อ field>_unit` (Ω / kΩ / MΩ)
+5. `browser_evaluate` → อ่านค่าที่แสดงบน SVG, computed `display` ของแต่ละช่อง, และค่าที่ป้อนในตารางผล
+6. `browser_click` → กด `Calculate DC Bias`
+7. อ่านหน้าผลลัพธ์ใหม่ทุกครั้ง และ `browser_network_requests` สำหรับเคส error
+
+## ตารางผลตรวจ A1–A5 (รอบที่ 2)
+
+| ID | โหมด / อินพุต | ค่าคาดหมาย | ผลที่เห็น | สถานะ |
+| --- | --- | --- | --- | --- |
+| A1 | Divider<br>V<sub>CC</sub> 12 V, R1 100 kΩ, R2 22 kΩ, R<sub>C</sub> 2.2 kΩ, R<sub>E</sub> 1 kΩ, β 100, V<sub>BE</sub> 0.70 V | I<sub>C</sub> 1.23 mA<br>V<sub>CE</sub> 8.052 V | I<sub>C</sub> **1.23 mA**<br>V<sub>CE</sub> **8.052 V**<br>V<sub>B</sub> 1.942 V · V<sub>E</sub> 1.242 V · V<sub>C</sub> 9.294 V<br>I<sub>B</sub> 12.3 µA · I<sub>E</sub> 1.24 mA<br>nodal check ✓ | **PASS** |
+| A2 | Fixed<br>R<sub>B</sub> = **1 MΩ** (หน่วย MΩ), R<sub>C</sub> 2.2 kΩ, β 100, V<sub>BE</sub> 0.70 V | I<sub>C</sub> 1.13 mA<br>V<sub>CE</sub> 9.514 V | I<sub>C</sub> **1.13 mA**<br>V<sub>CE</sub> **9.514 V**<br>V<sub>B</sub> 0.700 V · V<sub>E</sub> 0.000 V<br>หน่วย MΩ ยังถูกเลือกหลัง POST | **PASS** |
+| A3 | Emitter<br>R<sub>B</sub> 1000 kΩ, R<sub>C</sub> 2.2 kΩ, R<sub>E</sub> 1 kΩ | I<sub>C</sub> 1.03 mA<br>V<sub>CE</sub> 8.705 V | I<sub>C</sub> **1.03 mA**<br>V<sub>CE</sub> **8.705 V**<br>V<sub>B</sub> 1.737 V · V<sub>E</sub> 1.037 V · V<sub>C</sub> 9.742 V | **PASS** |
+| A4 | Emitter<br>เปลี่ยน R<sub>E</sub> เป็น 2 kΩ | I<sub>C</sub> ลดลง<br>V<sub>CE</sub> 8.033 V | I<sub>C</sub> **0.94 mA** (ลดจาก A3)<br>V<sub>CE</sub> **8.033 V**<br>SVG เปลี่ยนเป็น `RE = 2 kΩ` ทันทีโดยไม่ต้องกด Calculate | **PASS** |
+| A5 | Fixed<br>R<sub>B</sub> = **0** kΩ | แจ้งเตือน, ไม่มีผลค้าง, HTTP 400 | ข้อความ **“RB must be greater than 0”**<br>ไม่มีตารางผลลัพธ์<br>โหมดยังเป็น Fixed Bias และค่าที่กรอกยังอยู่<br>`[POST] /calculate => 400 BAD REQUEST` | **PASS** |
+
+## ผลตรวจพฤติกรรม UI ใหม่
+
+| หัวข้อ | วิธีตรวจ | ผลที่เห็น | สถานะ |
+| --- | --- | --- | --- |
+| ปุ่มเลือกโหมด 3 ปุ่ม | snapshot + click ที่ label | มี `radio` 3 ตัว (`mode_divider`, `mode_fixed`, `mode_emitter`) ปุ่มที่เลือกถูกไฮไลต์สีทอง และเปลี่ยนโหมดทันทีโดยไม่ reload | **PASS** |
+| ซ่อนช่องที่ไม่ใช้ | อ่าน computed `display` ของทุก `[data-field]` | Divider → เห็น V<sub>CC</sub>, R1, R2, R<sub>C</sub>, R<sub>E</sub>, β, V<sub>BE</sub><br>Fixed → เห็น V<sub>CC</sub>, R<sub>B</sub>, R<sub>C</sub>, β, V<sub>BE</sub><br>Emitter → เห็น V<sub>CC</sub>, R<sub>B</sub>, R<sub>C</sub>, R<sub>E</sub>, β, V<sub>BE</sub> | **PASS** |
+| วงจรอัปเดตระหว่างพิมพ์ | พิมพ์ค่าแล้วอ่านข้อความใน `<tspan data-slot>` ก่อนกด Calculate | `VCC = 12 V`, `R1 = 100 kΩ`, `R2 = 22 kΩ`, `RC = 2.2 kΩ`, `RE = 1 kΩ`, `β = 100`, `VBE = 0.70 V` — มีช่องว่างหน้าตัวเลขทุกจุด | **PASS** |
+| วงจรซ่อนอุปกรณ์ตามโหมด | อ่านคลาส `is-hidden` ของ `[data-component]` | Divider → ซ่อน RB<br>Fixed → ซ่อน R1, R2, RE, divider-tap<br>Emitter → ซ่อน R1, R2, divider-tap | **PASS** |
+| ค่าเริ่มต้นว่าง | เปิดหน้าครั้งแรก | ทุกช่องว่าง และ SVG แสดง `= —` (ไม่ใช่ `undefined`/`null`) | **PASS** |
+| หน่วย MΩ | เลือก MΩ ที่ R<sub>B</sub> แล้วคำนวณ | ได้ผลเท่ากับ R<sub>B</sub> = 1,000,000 Ω (I<sub>C</sub> 1.13 mA, V<sub>CE</sub> 9.514 V) | **PASS** |
+| ธีมมืด | เปิดหน้าและหน้าผลลัพธ์ | พื้นหลังดำ/เทาเข้ม การ์ดและช่องกรอกเข้ม ตัวอักษรสว่าง ปุ่ม Calculate และตัวเลขผลเป็นสีทอง วงจรใช้เส้นสีอ่อนตัดกับพื้น | **PASS** |
+
+## ภาพหลักฐาน (โฟลเดอร์ `.playwright-mcp/`, ไม่ได้ commit)
+
+- `dark-form.png` — ฟอร์มโหมด Divider (ค่าว่าง) บนธีมมืด
+- `dark-result-divider.png` — ผล A1 พร้อมตาราง Thevenin และ nodal check
+- `dark-fixed-fields.png` — โหมด Fixed แสดงเฉพาะช่องที่ใช้
+- `dark-emitter-live.png` — โหมด Emitter กับวงจรที่อัปเดตจากค่าที่พิมพ์
+- `dark-error-fixed.png` — หน้า 400 หลัง R<sub>B</sub> = 0 (โหมดและค่ายังอยู่)
+
+## ข้อสังเกตจากการตรวจรอบนี้
+
+- ปุ่ม radio ถูกซ่อนด้วย `opacity: 0` และรับคลิกผ่าน `<label>` (ผู้ใช้ทั่วไปคลิกที่ป้ายชื่อ) — คีย์บอร์ดยังโฟกัสและเปลี่ยนโหมดได้ตามปกติ
+- ระหว่างตรวจพบและแก้ 3 บุก่อนปิดรอบ: ช่องว่างหน้าค่าใน SVG, R1/R2 ที่ซ่อนรวมกันเป็นกลุ่มเดียว, และสไตล์ `.field { display: grid }` ที่ทำให้แอตทริบิวต์ `hidden` ไม่ทำงาน (เพิ่มกฎ `[hidden] { display: none !important; }`) — ทั้งสามมีเทสครอบแล้ว
+
