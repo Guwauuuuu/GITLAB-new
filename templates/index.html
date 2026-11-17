@@ -20,7 +20,7 @@
       </svg>
       <div>
         <h1>Lab 02: BJT DC Bias Web App</h1>
-        <p class="subtitle">ENG29 2121 — Common Emitter (Voltage Divider Bias)</p>
+        <p class="subtitle">ENG29 2121 — Common Emitter (Divider / Fixed / Emitter Bias)</p>
       </div>
     </div>
     <div class="course-badge">
@@ -40,6 +40,18 @@
       {% endif %}
 
       <form method="post" action="/calculate">
+        <div class="field">
+          <label for="mode">Bias Mode <span>(Circuit Configuration)</span></label>
+          <div class="control">
+            <select id="mode" name="mode">
+              <option value="divider" {{ 'selected' if mode == 'divider' else '' }}>Voltage Divider Bias</option>
+              <option value="fixed" {{ 'selected' if mode == 'fixed' else '' }}>Fixed Bias</option>
+              <option value="emitter" {{ 'selected' if mode == 'emitter' else '' }}>Emitter Bias</option>
+            </select>
+          </div>
+        </div>
+        <p class="circuit-note">Divider uses R1/R2. Fixed and Emitter use RB. RE is used by Divider and Emitter.</p>
+
         <div class="field">
           <label for="vcc_v">V<sub>CC</sub> <span>(Supply Voltage)</span></label>
           <div class="control">
@@ -66,6 +78,17 @@
             <select name="r2_ohm_unit" aria-label="R2 unit">
               <option value="ohm" {{ 'selected' if units.r2_ohm == 'ohm' else '' }}>&#937;</option>
               <option value="kohm" {{ 'selected' if units.r2_ohm == 'kohm' else '' }}>k&#937;</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="rb_ohm">R<sub>B</sub> <span>(Base Resistor &mdash; Fixed / Emitter)</span></label>
+          <div class="control with-select">
+            <input id="rb_ohm" type="number" step="any" name="rb_ohm" value="{{ raw.rb_ohm }}">
+            <select name="rb_ohm_unit" aria-label="RB unit">
+              <option value="ohm" {{ 'selected' if units.rb_ohm == 'ohm' else '' }}>&#937;</option>
+              <option value="kohm" {{ 'selected' if units.rb_ohm == 'kohm' else '' }}>k&#937;</option>
             </select>
           </div>
         </div>
@@ -214,6 +237,50 @@
             (max rel. diff {{ "%.2e"|format(report.max_rel_diff) }})
           </p>
         </div>
+      {% elif result %}
+        <p class="circuit-note">
+          {% if result.mode == 'fixed' %}
+            Fixed bias: R<sub>B</sub> from V<sub>CC</sub> to base, emitter grounded.
+          {% else %}
+            Emitter bias: R<sub>B</sub> from V<sub>CC</sub> to base, R<sub>E</sub> to ground.
+          {% endif %}
+        </p>
+
+        <table class="result-table">
+          <tr><th scope="row">V<sub>B</sub></th><td>{{ "%.3f"|format(result.vb_v) }} V</td></tr>
+          <tr><th scope="row">V<sub>E</sub></th><td>{{ "%.3f"|format(result.ve_v) }} V</td></tr>
+          <tr><th scope="row">V<sub>C</sub></th><td>{{ "%.3f"|format(result.vc_v) }} V</td></tr>
+          <tr><th scope="row">V<sub>CE</sub></th><td>{{ "%.3f"|format(result.vce_v) }} V</td></tr>
+          <tr><th scope="row">I<sub>B</sub></th><td>{{ "%.1f"|format(result.ib_a * 1e6) }} &#181;A</td></tr>
+          <tr><th scope="row">I<sub>C</sub></th><td>{{ "%.2f"|format(result.ic_a * 1e3) }} mA</td></tr>
+          <tr><th scope="row">I<sub>E</sub></th><td>{{ "%.2f"|format(result.ie_a * 1e3) }} mA</td></tr>
+        </table>
+
+        {% if result.region == 'active' %}
+          <div class="status active">
+            <span class="status-icon" aria-hidden="true">&#10003;</span>
+            <div>
+              <strong>Active region approximation OK</strong>
+              <p>V<sub>CE</sub> = {{ "%.3f"|format(result.vce_v) }} V &gt; 0.2 V (transistor in active region)</p>
+            </div>
+          </div>
+        {% elif result.region == 'cutoff' %}
+          <div class="status cutoff">
+            <span class="status-icon" aria-hidden="true">!</span>
+            <div>
+              <strong>Cutoff region</strong>
+              <p>I<sub>B</sub> &#8804; 0 &mdash; not a usable bias point.</p>
+            </div>
+          </div>
+        {% else %}
+          <div class="status saturation">
+            <span class="status-icon" aria-hidden="true">!</span>
+            <div>
+              <strong>Saturation region</strong>
+              <p>V<sub>CE</sub> &lt; 0.2 V &mdash; not a usable bias point.</p>
+            </div>
+          </div>
+        {% endif %}
       {% else %}
         <div class="empty-state">
           <p>Enter the circuit values and press <strong>Calculate DC Bias</strong>.</p>
@@ -230,7 +297,7 @@
     </span>
     <div>
       <strong>Week 2 Goal</strong>
-      <p>Rough target for this lab: build a Flask web app that takes the circuit parameters, computes the BJT DC bias (V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>, I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub>) for a common-emitter amplifier with voltage-divider bias, and displays the results.</p>
+      <p>Rough target for this lab: build a Flask web app that takes the circuit parameters, computes the BJT DC bias (V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>, I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub>) for a common-emitter amplifier with divider, fixed, or emitter bias, and displays the results.</p>
     </div>
   </footer>
 

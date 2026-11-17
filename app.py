@@ -2,23 +2,39 @@ import math
 
 from flask import Flask, redirect, render_template, request, url_for
 
+from bias_modes import (
+    EmitterBiasInput,
+    FixedBiasInput,
+    solve_emitter_bias,
+    solve_fixed_bias,
+    validate_emitter,
+    validate_fixed,
+)
 from bjt import BiasInput, validate, solve_base_loop
 from independent import solve_nodal, compare
 
 FIELD_NAMES = ("vcc_v", "r1_ohm", "r2_ohm", "rc_ohm", "re_ohm", "beta", "vbe_v")
-RESISTOR_FIELDS = ("r1_ohm", "r2_ohm", "rc_ohm", "re_ohm")
+ALL_FIELDS = ("vcc_v", "r1_ohm", "r2_ohm", "rb_ohm", "rc_ohm", "re_ohm", "beta", "vbe_v")
+RESISTOR_FIELDS = ("r1_ohm", "r2_ohm", "rb_ohm", "rc_ohm", "re_ohm")
+
+MODE_FIELDS = {
+    "divider": FIELD_NAMES,
+    "fixed": ("vcc_v", "rb_ohm", "rc_ohm", "beta", "vbe_v"),
+    "emitter": ("vcc_v", "rb_ohm", "rc_ohm", "re_ohm", "beta", "vbe_v"),
+}
 
 LABELS = {
     "vcc_v": "VCC",
     "r1_ohm": "R1",
     "r2_ohm": "R2",
+    "rb_ohm": "RB",
     "rc_ohm": "RC",
     "re_ohm": "RE",
     "beta": "beta",
     "vbe_v": "VBE",
 }
 
-DEFAULTS = {name: "" for name in FIELD_NAMES}
+DEFAULTS = {name: "" for name in ALL_FIELDS}
 DEFAULT_UNITS = {name: "ohm" for name in RESISTOR_FIELDS}
 
 app = Flask(__name__)
@@ -26,7 +42,12 @@ app = Flask(__name__)
 
 @app.get("/")
 def index():
-    return render_template("index.html", raw=DEFAULTS, units=DEFAULT_UNITS)
+    return render_template(
+        "index.html",
+        raw=DEFAULTS,
+        units=DEFAULT_UNITS,
+        mode="divider",
+    )
 
 
 @app.get("/calculate")
@@ -37,27 +58,73 @@ def calculate_form():
 
 @app.post("/calculate")
 def calculate():
-    raw = {name: request.form.get(name, "") for name in FIELD_NAMES}
+    mode = request.form.get("mode", "divider") or "divider"
+    raw = {name: request.form.get(name, "") for name in ALL_FIELDS}
     units = {name: request.form.get(f"{name}_unit", "ohm") for name in RESISTOR_FIELDS}
     units = {name: (unit if unit in ("ohm", "kohm") else "ohm") for name, unit in units.items()}
 
+    if mode not in MODE_FIELDS:
+        return render_template(
+            "index.html",
+            errors=["mode must be divider, fixed, or emitter"],
+            raw=raw,
+            units=units,
+            mode="divider",
+        ), 400
+
+    field_names = MODE_FIELDS[mode]
     parsed = {}
     errors = []
-    for name in FIELD_NAMES:
+    for name in field_names:
         try:
             parsed[name] = float(raw[name])
         except (ValueError, TypeError):
             errors.append(f"{LABELS[name]} must be a number")
 
     if not errors:
-        for name in RESISTOR_FIELDS:
-            if units[name] == "kohm":
+        for name in field_names:
+            if name in RESISTOR_FIELDS and units[name] == "kohm":
                 parsed[name] *= 1000.0
-        bias = BiasInput(**parsed)
-        errors = validate(bias)
+        if mode == "divider":
+            bias = BiasInput(**parsed)
+            errors = validate(bias)
+        elif mode == "fixed":
+            bias = FixedBiasInput(**parsed)
+            errors = validate_fixed(bias)
+        else:
+            bias = EmitterBiasInput(**parsed)
+            errors = validate_emitter(bias)
 
     if errors:
-        return render_template("index.html", errors=errors, raw=raw, units=units), 400
+        return render_template(
+            "index.html",
+            errors=errors,
+            raw=raw,
+            units=units,
+            mode=mode,
+        ), 400
+
+    if mode != "divider":
+        result = solve_fixed_bias(bias) if mode == "fixed" else solve_emitter_bias(bias)
+        rendered_values = (
+            result["ib_a"], result["ic_a"], result["ie_a"],
+            result["vb_v"], result["vc_v"], result["ve_v"], result["vce_v"],
+        )
+        if not all(math.isfinite(value) for value in rendered_values):
+            return render_template(
+                "index.html",
+                errors=["values exceed the representable numeric range"],
+                raw=raw,
+                units=units,
+                mode=mode,
+            ), 400
+        return render_template(
+            "index.html",
+            result=result,
+            raw=raw,
+            units=units,
+            mode=mode,
+        )
 
     base = solve_base_loop(bias)
     nodal = solve_nodal(bias)
@@ -75,6 +142,7 @@ def calculate():
             errors=["values exceed the representable numeric range"],
             raw=raw,
             units=units,
+            mode=mode,
         ), 400
 
     return render_template(
@@ -84,6 +152,7 @@ def calculate():
         report=report,
         raw=raw,
         units=units,
+        mode=mode,
     )
 
 
