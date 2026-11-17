@@ -187,7 +187,14 @@ class TestAppRoutes(unittest.TestCase):
                     rc_ohm="2.2", rc_ohm_unit="kohm", beta="100", vbe_v="0.70")
         html = self.client.post("/calculate", data=data).data.decode("utf-8")
         self.assertRegex(html, r'data-component="r1"[^>]*is-hidden')
+        self.assertRegex(html, r'data-component="r2"[^>]*is-hidden')
         self.assertNotRegex(html, r'data-component="rb"[^>]*is-hidden')
+
+    def test_divider_mode_shows_r1_and_r2_components_in_svg(self):
+        html = self.client.get("/").data.decode("utf-8")
+        for component in ("r1", "r2"):
+            self.assertNotRegex(html, rf'data-component="{component}"[^>]*is-hidden')
+        self.assertRegex(html, r'data-component="rb"[^>]*is-hidden')
 
     def test_stylesheet_uses_dark_theme_tokens(self):
         import pathlib
