@@ -196,12 +196,29 @@ class TestAppRoutes(unittest.TestCase):
             self.assertNotRegex(html, rf'data-component="{component}"[^>]*is-hidden')
         self.assertRegex(html, r'data-component="rb"[^>]*is-hidden')
 
+    def test_error_post_keeps_submitted_mode_and_units(self):
+        data = dict(mode="fixed", vcc_v="12", rb_ohm="0", rb_ohm_unit="kohm",
+                    rc_ohm="2.2", rc_ohm_unit="kohm", beta="100", vbe_v="0.70")
+        response = self.client.post("/calculate", data=data)
+        html = response.data.decode("utf-8")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("RB must be greater than 0", html)
+        self.assertRegex(html, r'id="mode_fixed"[^>]*checked')
+        self.assertRegex(html, r'data-field="r1_ohm"[^>]*hidden')
+        self.assertNotRegex(html, r'data-field="rb_ohm"[^>]*hidden')
+        self.assertIn('value="kohm" selected', html)
+
     def test_stylesheet_uses_dark_theme_tokens(self):
         import pathlib
         css = pathlib.Path("static/style.css").read_text(encoding="utf-8")
         for token in ("--bg: #0B0D10", "--panel: #14171C", "--ink: #E8EAF0", "--accent: #F5B301"):
             self.assertIn(token, css)
         self.assertIn(".is-hidden", css)
+
+    def test_stylesheet_does_not_override_the_hidden_attribute(self):
+        import pathlib
+        css = pathlib.Path("static/style.css").read_text(encoding="utf-8")
+        self.assertIn("[hidden]", css)
 
 
 if __name__ == "__main__":

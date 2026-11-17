@@ -86,7 +86,7 @@
         </div>
 
         <div class="field" data-field="rb_ohm" data-modes="{{ field_visibility.rb_ohm|join(' ') }}" {{ 'hidden' if mode not in field_visibility.rb_ohm else '' }}>
-          <label for="rb_ohm">R<sub>B</sub> <span>(Base Resistor &mdash; Fixed / Emitter)</span></label>
+          <label for="rb_ohm">R<sub>B</sub> <span>(Base Resistor)</span></label>
           <div class="control with-select">
             <input id="rb_ohm" type="number" step="any" name="rb_ohm" value="{{ raw.rb_ohm }}">
             <select id="rb_ohm_unit" name="rb_ohm_unit" aria-label="RB unit">
@@ -172,7 +172,7 @@
         <g data-component="rb" data-modes="fixed emitter" class="{{ '' if mode in ('fixed', 'emitter') else 'is-hidden' }}">
           <line class="wire" x1="236" y1="40" x2="236" y2="95"/>
           <rect class="comp" x="230" y="95" width="12" height="40"/>
-          <text class="lbl" x="256" y="120" font-size="14">R<tspan baseline-shift="sub" font-size="10">B</tspan><tspan data-slot="rb">&#160;{{ labels.rb }}</tspan></text>
+          <text class="lbl" x="222" y="120" font-size="14" text-anchor="end">R<tspan baseline-shift="sub" font-size="10">B</tspan><tspan data-slot="rb">&#160;{{ labels.rb }}</tspan></text>
           <line class="wire" x1="236" y1="135" x2="236" y2="190"/>
           <circle class="dot" cx="236" cy="40" r="3.5"/>
           <circle class="dot" cx="236" cy="190" r="3.5"/>
