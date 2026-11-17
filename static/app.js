@@ -28,7 +28,7 @@ function updateCircuit() {
 
   for (const [slot, text] of Object.entries(values)) {
     const el = document.querySelector(`[data-slot="${slot}"]`);
-    if (el) el.textContent = text;
+    if (el) el.textContent = "\u00A0" + text;
   }
 }
 

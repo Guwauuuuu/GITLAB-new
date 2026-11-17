@@ -175,6 +175,13 @@ class TestAppRoutes(unittest.TestCase):
         self.assertEqual(labels["r1"], "= —")
         self.assertEqual(labels["vcc"], "= —")
 
+    def test_svg_labels_are_separated_from_the_symbol(self):
+        data = dict(mode="fixed", vcc_v="12", rb_ohm="1", rb_ohm_unit="mohm",
+                    rc_ohm="2.2", rc_ohm_unit="kohm", beta="100", vbe_v="0.70")
+        html = self.client.post("/calculate", data=data).data.decode("utf-8")
+        for expected in ("&#160;= 12 V", "&#160;= 1 MΩ", "&#160;= 2.2 kΩ"):
+            self.assertIn(expected, html)
+
     def test_fixed_mode_hides_divider_components_in_svg(self):
         data = dict(mode="fixed", vcc_v="12", rb_ohm="1", rb_ohm_unit="mohm",
                     rc_ohm="2.2", rc_ohm_unit="kohm", beta="100", vbe_v="0.70")
