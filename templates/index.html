@@ -143,51 +143,67 @@
 
     <section class="panel circuit-panel" aria-labelledby="circuit-title">
       <h2 id="circuit-title"><span class="panel-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v7M12 15v7M2 12h7M15 12h7" fill="none" stroke="currentColor" stroke-width="2"/></svg></span> Circuit: Common-Emitter Amplifier</h2>
-      <svg class="circuit" viewBox="30 10 470 350" role="img" aria-label="Voltage-divider biased NPN common-emitter amplifier">
-        <line x1="140" y1="40" x2="372" y2="40" stroke="#6B4E00" stroke-width="2"/>
-        <circle cx="372" cy="40" r="3.5" fill="#6B4E00"/>
-        <line x1="140" y1="32" x2="140" y2="48" stroke="#6B4E00" stroke-width="2"/>
-        <text x="152" y="28" font-size="14" fill="#6B4E00">V<tspan baseline-shift="sub" font-size="10">CC</tspan> = 12 V</text>
+      {% set labels = circuit_labels(raw, units) %}
+      <svg class="circuit" viewBox="30 10 470 350" role="img" aria-label="{{ {'divider': 'Voltage-divider', 'fixed': 'Fixed', 'emitter': 'Emitter'}[mode] }} biased NPN common-emitter amplifier">
+        <line class="wire" x1="140" y1="40" x2="372" y2="40"/>
+        <circle class="dot" cx="372" cy="40" r="3.5"/>
+        <line class="wire" x1="140" y1="32" x2="140" y2="48"/>
+        <text class="lbl" x="152" y="28" font-size="14">V<tspan baseline-shift="sub" font-size="10">CC</tspan><tspan data-slot="vcc">{{ labels.vcc }}</tspan></text>
 
-        <line x1="140" y1="40" x2="140" y2="80" stroke="#6B4E00" stroke-width="2"/>
-        <rect x="134" y="80" width="12" height="40" fill="#FFFFFF" stroke="#6B4E00" stroke-width="2"/>
-        <text x="126" y="105" font-size="14" text-anchor="end" fill="#4A3A00">R1 = 100 k&#937;</text>
-        <line x1="140" y1="120" x2="140" y2="240" stroke="#6B4E00" stroke-width="2"/>
-        <rect x="134" y="240" width="12" height="40" fill="#FFFFFF" stroke="#6B4E00" stroke-width="2"/>
-        <text x="126" y="265" font-size="14" text-anchor="end" fill="#4A3A00">R2 = 22 k&#937;</text>
-        <line x1="140" y1="280" x2="140" y2="330" stroke="#6B4E00" stroke-width="2"/>
+        <g data-component="r1" data-modes="divider" class="{{ '' if mode == 'divider' else 'is-hidden' }}">
+          <line class="wire" x1="140" y1="40" x2="140" y2="80"/>
+          <rect class="comp" x="134" y="80" width="12" height="40"/>
+          <text class="lbl" x="126" y="105" font-size="14" text-anchor="end">R<tspan baseline-shift="sub" font-size="10">1</tspan><tspan data-slot="r1">{{ labels.r1 }}</tspan></text>
+          <line class="wire" x1="140" y1="120" x2="140" y2="240"/>
+          <rect class="comp" x="134" y="240" width="12" height="40"/>
+          <text class="lbl" x="126" y="265" font-size="14" text-anchor="end">R<tspan baseline-shift="sub" font-size="10">2</tspan><tspan data-slot="r2">{{ labels.r2 }}</tspan></text>
+          <line class="wire" x1="140" y1="280" x2="140" y2="330"/>
+          <circle class="dot" cx="140" cy="190" r="3.5"/>
+          <line class="wire" x1="140" y1="190" x2="312" y2="190"/>
+          <line class="wire" x1="140" y1="330" x2="236" y2="330"/>
+        </g>
 
-        <circle cx="140" cy="190" r="3.5" fill="#6B4E00"/>
-        <line x1="140" y1="190" x2="312" y2="190" stroke="#6B4E00" stroke-width="2"/>
-        <text x="164" y="180" font-size="14" fill="#4A3A00">&#946; = 100</text>
-        <text x="164" y="214" font-size="14" fill="#4A3A00">V<tspan baseline-shift="sub" font-size="10">BE</tspan> = 0.70 V</text>
+        <g data-component="rb" data-modes="fixed emitter" class="{{ '' if mode in ('fixed', 'emitter') else 'is-hidden' }}">
+          <line class="wire" x1="236" y1="40" x2="236" y2="95"/>
+          <rect class="comp" x="230" y="95" width="12" height="40"/>
+          <text class="lbl" x="256" y="120" font-size="14">R<tspan baseline-shift="sub" font-size="10">B</tspan><tspan data-slot="rb">{{ labels.rb }}</tspan></text>
+          <line class="wire" x1="236" y1="135" x2="236" y2="190"/>
+          <circle class="dot" cx="236" cy="40" r="3.5"/>
+          <circle class="dot" cx="236" cy="190" r="3.5"/>
+          <line class="wire" x1="236" y1="190" x2="312" y2="190"/>
+        </g>
 
-        <circle cx="340" cy="190" r="42" fill="#FFF9E6" stroke="#6B4E00" stroke-width="2"/>
-        <line x1="312" y1="160" x2="312" y2="220" stroke="#6B4E00" stroke-width="4"/>
-        <line x1="312" y1="172" x2="372" y2="142" stroke="#6B4E00" stroke-width="2"/>
-        <line x1="312" y1="208" x2="372" y2="238" stroke="#6B4E00" stroke-width="2"/>
-        <polygon points="372,238 360,236 365,226" fill="#6B4E00"/>
-        <text x="318" y="124" font-size="14" fill="#4A3A00">Q1</text>
-        <text x="318" y="138" font-size="12" fill="#7A6A45">NPN</text>
+        <text class="lbl" x="164" y="180" font-size="14">&#946;<tspan data-slot="beta">{{ labels.beta }}</tspan></text>
+        <text class="lbl" x="164" y="214" font-size="14">V<tspan baseline-shift="sub" font-size="10">BE</tspan><tspan data-slot="vbe">{{ labels.vbe }}</tspan></text>
 
-        <line x1="372" y1="142" x2="372" y2="40" stroke="#6B4E00" stroke-width="2"/>
-        <rect x="366" y="70" width="12" height="40" fill="#FFFFFF" stroke="#6B4E00" stroke-width="2"/>
-        <text x="388" y="95" font-size="14" fill="#4A3A00">RC = 2.2 k&#937;</text>
+        <circle class="comp" cx="340" cy="190" r="42"/>
+        <line class="wire" x1="312" y1="160" x2="312" y2="220" stroke-width="4"/>
+        <line class="wire" x1="312" y1="172" x2="372" y2="142"/>
+        <line class="wire" x1="312" y1="208" x2="372" y2="238"/>
+        <polygon class="dot" points="372,238 360,236 365,226"/>
+        <text class="lbl" x="318" y="124" font-size="14">Q1</text>
+        <text class="lbl-muted" x="318" y="138" font-size="12">NPN</text>
 
-        <line x1="372" y1="238" x2="372" y2="330" stroke="#6B4E00" stroke-width="2"/>
-        <rect x="366" y="255" width="12" height="40" fill="#FFFFFF" stroke="#6B4E00" stroke-width="2"/>
-        <text x="388" y="280" font-size="14" fill="#4A3A00">RE = 1.0 k&#937;</text>
+        <line class="wire" x1="372" y1="142" x2="372" y2="40"/>
+        <rect class="comp" x="366" y="70" width="12" height="40"/>
+        <text class="lbl" x="388" y="95" font-size="14">R<tspan baseline-shift="sub" font-size="10">C</tspan><tspan data-slot="rc">{{ labels.rc }}</tspan></text>
 
-        <line x1="140" y1="330" x2="372" y2="330" stroke="#6B4E00" stroke-width="2"/>
-        <line x1="236" y1="330" x2="236" y2="338" stroke="#6B4E00" stroke-width="2"/>
-        <line x1="222" y1="338" x2="250" y2="338" stroke="#6B4E00" stroke-width="2"/>
-        <line x1="228" y1="345" x2="244" y2="345" stroke="#6B4E00" stroke-width="2"/>
-        <line x1="234" y1="352" x2="238" y2="352" stroke="#6B4E00" stroke-width="2"/>
-        <text x="258" y="345" font-size="14" fill="#4A3A00">GND</text>
+        <line class="wire" x1="372" y1="238" x2="372" y2="330"/>
+        <g data-component="re" data-modes="divider emitter" class="{{ '' if mode in ('divider', 'emitter') else 'is-hidden' }}">
+          <rect class="comp" x="366" y="255" width="12" height="40"/>
+          <text class="lbl" x="388" y="280" font-size="14">R<tspan baseline-shift="sub" font-size="10">E</tspan><tspan data-slot="re">{{ labels.re }}</tspan></text>
+        </g>
 
-        <text x="430" y="160" font-size="14" fill="#4A3A00">V<tspan baseline-shift="sub" font-size="10">CE</tspan> = ?</text>
+        <line class="wire" x1="236" y1="330" x2="372" y2="330"/>
+        <line class="wire" x1="236" y1="330" x2="236" y2="338"/>
+        <line class="wire" x1="222" y1="338" x2="250" y2="338"/>
+        <line class="wire" x1="228" y1="345" x2="244" y2="345"/>
+        <line class="wire" x1="234" y1="352" x2="238" y2="352"/>
+        <text class="lbl" x="258" y="345" font-size="14">GND</text>
+
+        <text class="lbl-muted" x="430" y="160" font-size="14">V<tspan baseline-shift="sub" font-size="10">CE</tspan> = ?</text>
       </svg>
-      <p class="circuit-note">Example resistor values shown. Results are computed from the values you enter.</p>
+      <p class="circuit-note">Values shown follow your inputs; results are computed from the same values.</p>
     </section>
 
     <section class="panel results-panel" aria-labelledby="results-title">
@@ -308,5 +324,6 @@
   </footer>
 
 </div>
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>
 </html>

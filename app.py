@@ -20,6 +20,29 @@ RESISTOR_FIELDS = ("r1_ohm", "r2_ohm", "rb_ohm", "rc_ohm", "re_ohm")
 UNIT_SCALE = {"ohm": 1.0, "kohm": 1e3, "mohm": 1e6}
 UNIT_SYMBOLS = {"ohm": "Ω", "kohm": "kΩ", "mohm": "MΩ"}
 
+
+def _display(raw_value, unit=None, suffix=""):
+    value = (raw_value or "").strip()
+    if not value:
+        return "= —"
+    if unit:
+        return f"= {value} {UNIT_SYMBOLS.get(unit, UNIT_SYMBOLS['ohm'])}"
+    return f"= {value}{(' ' + suffix) if suffix else ''}"
+
+
+def circuit_labels(raw, units):
+    """Format circuit-diagram text from user input. Display only, no bias math."""
+    return {
+        "vcc": _display(raw.get("vcc_v", ""), None, "V"),
+        "r1": _display(raw.get("r1_ohm", ""), units.get("r1_ohm", "ohm")),
+        "r2": _display(raw.get("r2_ohm", ""), units.get("r2_ohm", "ohm")),
+        "rb": _display(raw.get("rb_ohm", ""), units.get("rb_ohm", "ohm")),
+        "rc": _display(raw.get("rc_ohm", ""), units.get("rc_ohm", "ohm")),
+        "re": _display(raw.get("re_ohm", ""), units.get("re_ohm", "ohm")),
+        "beta": _display(raw.get("beta", "")),
+        "vbe": _display(raw.get("vbe_v", ""), None, "V"),
+    }
+
 MODE_FIELDS = {
     "divider": FIELD_NAMES,
     "fixed": ("vcc_v", "rb_ohm", "rc_ohm", "beta", "vbe_v"),
@@ -46,6 +69,7 @@ DEFAULTS = {name: "" for name in ALL_FIELDS}
 DEFAULT_UNITS = {name: "ohm" for name in RESISTOR_FIELDS}
 
 app = Flask(__name__)
+app.jinja_env.globals["circuit_labels"] = circuit_labels
 
 
 @app.context_processor

@@ -156,6 +156,32 @@ class TestAppRoutes(unittest.TestCase):
         self.assertTrue(for_ids)
         self.assertLessEqual(for_ids, ids)
 
+    def test_svg_has_data_slots_for_every_parameter(self):
+        html = self.client.get("/").data.decode("utf-8")
+        for slot in ("vcc", "r1", "r2", "rb", "rc", "re", "beta", "vbe"):
+            self.assertIn(f'data-slot="{slot}"', html)
+
+    def test_svg_shows_submitted_values_with_units(self):
+        data = dict(mode="fixed", vcc_v="12", rb_ohm="1", rb_ohm_unit="mohm",
+                    rc_ohm="2.2", rc_ohm_unit="kohm", beta="100", vbe_v="0.70")
+        html = self.client.post("/calculate", data=data).data.decode("utf-8")
+        self.assertIn("= 1 MΩ", html)
+        self.assertIn("= 2.2 kΩ", html)
+        self.assertIn("= 12 V", html)
+
+    def test_circuit_labels_use_dash_for_empty_values(self):
+        from app import circuit_labels
+        labels = circuit_labels({}, {"r1_ohm": "kohm"})
+        self.assertEqual(labels["r1"], "= —")
+        self.assertEqual(labels["vcc"], "= —")
+
+    def test_fixed_mode_hides_divider_components_in_svg(self):
+        data = dict(mode="fixed", vcc_v="12", rb_ohm="1", rb_ohm_unit="mohm",
+                    rc_ohm="2.2", rc_ohm_unit="kohm", beta="100", vbe_v="0.70")
+        html = self.client.post("/calculate", data=data).data.decode("utf-8")
+        self.assertRegex(html, r'data-component="r1"[^>]*is-hidden')
+        self.assertNotRegex(html, r'data-component="rb"[^>]*is-hidden')
+
 
 if __name__ == "__main__":
     unittest.main()
