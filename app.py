@@ -17,6 +17,9 @@ FIELD_NAMES = ("vcc_v", "r1_ohm", "r2_ohm", "rc_ohm", "re_ohm", "beta", "vbe_v")
 ALL_FIELDS = ("vcc_v", "r1_ohm", "r2_ohm", "rb_ohm", "rc_ohm", "re_ohm", "beta", "vbe_v")
 RESISTOR_FIELDS = ("r1_ohm", "r2_ohm", "rb_ohm", "rc_ohm", "re_ohm")
 
+UNIT_SCALE = {"ohm": 1.0, "kohm": 1e3, "mohm": 1e6}
+UNIT_SYMBOLS = {"ohm": "Ω", "kohm": "kΩ", "mohm": "MΩ"}
+
 MODE_FIELDS = {
     "divider": FIELD_NAMES,
     "fixed": ("vcc_v", "rb_ohm", "rc_ohm", "beta", "vbe_v"),
@@ -61,7 +64,7 @@ def calculate():
     mode = request.form.get("mode", "divider") or "divider"
     raw = {name: request.form.get(name, "") for name in ALL_FIELDS}
     units = {name: request.form.get(f"{name}_unit", "ohm") for name in RESISTOR_FIELDS}
-    units = {name: (unit if unit in ("ohm", "kohm") else "ohm") for name, unit in units.items()}
+    units = {name: (unit if unit in UNIT_SCALE else "ohm") for name, unit in units.items()}
 
     if mode not in MODE_FIELDS:
         return render_template(
@@ -83,8 +86,8 @@ def calculate():
 
     if not errors:
         for name in field_names:
-            if name in RESISTOR_FIELDS and units[name] == "kohm":
-                parsed[name] *= 1000.0
+            if name in RESISTOR_FIELDS:
+                parsed[name] *= UNIT_SCALE[units[name]]
         if mode == "divider":
             bias = BiasInput(**parsed)
             errors = validate(bias)

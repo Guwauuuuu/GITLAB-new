@@ -64,9 +64,10 @@
           <label for="r1_ohm">R<sub>1</sub> <span>(Upper Divider)</span></label>
           <div class="control with-select">
             <input id="r1_ohm" type="number" step="any" name="r1_ohm" value="{{ raw.r1_ohm }}">
-            <select name="r1_ohm_unit" aria-label="R1 unit">
+            <select id="r1_ohm_unit" name="r1_ohm_unit" aria-label="R1 unit">
               <option value="ohm" {{ 'selected' if units.r1_ohm == 'ohm' else '' }}>&#937;</option>
               <option value="kohm" {{ 'selected' if units.r1_ohm == 'kohm' else '' }}>k&#937;</option>
+              <option value="mohm" {{ 'selected' if units.r1_ohm == 'mohm' else '' }}>M&#937;</option>
             </select>
           </div>
         </div>
@@ -75,9 +76,10 @@
           <label for="r2_ohm">R<sub>2</sub> <span>(Lower Divider)</span></label>
           <div class="control with-select">
             <input id="r2_ohm" type="number" step="any" name="r2_ohm" value="{{ raw.r2_ohm }}">
-            <select name="r2_ohm_unit" aria-label="R2 unit">
+            <select id="r2_ohm_unit" name="r2_ohm_unit" aria-label="R2 unit">
               <option value="ohm" {{ 'selected' if units.r2_ohm == 'ohm' else '' }}>&#937;</option>
               <option value="kohm" {{ 'selected' if units.r2_ohm == 'kohm' else '' }}>k&#937;</option>
+              <option value="mohm" {{ 'selected' if units.r2_ohm == 'mohm' else '' }}>M&#937;</option>
             </select>
           </div>
         </div>
@@ -86,9 +88,10 @@
           <label for="rb_ohm">R<sub>B</sub> <span>(Base Resistor &mdash; Fixed / Emitter)</span></label>
           <div class="control with-select">
             <input id="rb_ohm" type="number" step="any" name="rb_ohm" value="{{ raw.rb_ohm }}">
-            <select name="rb_ohm_unit" aria-label="RB unit">
+            <select id="rb_ohm_unit" name="rb_ohm_unit" aria-label="RB unit">
               <option value="ohm" {{ 'selected' if units.rb_ohm == 'ohm' else '' }}>&#937;</option>
               <option value="kohm" {{ 'selected' if units.rb_ohm == 'kohm' else '' }}>k&#937;</option>
+              <option value="mohm" {{ 'selected' if units.rb_ohm == 'mohm' else '' }}>M&#937;</option>
             </select>
           </div>
         </div>
@@ -97,9 +100,10 @@
           <label for="rc_ohm">R<sub>C</sub> <span>(Collector Resistor)</span></label>
           <div class="control with-select">
             <input id="rc_ohm" type="number" step="any" name="rc_ohm" value="{{ raw.rc_ohm }}">
-            <select name="rc_ohm_unit" aria-label="RC unit">
+            <select id="rc_ohm_unit" name="rc_ohm_unit" aria-label="RC unit">
               <option value="ohm" {{ 'selected' if units.rc_ohm == 'ohm' else '' }}>&#937;</option>
               <option value="kohm" {{ 'selected' if units.rc_ohm == 'kohm' else '' }}>k&#937;</option>
+              <option value="mohm" {{ 'selected' if units.rc_ohm == 'mohm' else '' }}>M&#937;</option>
             </select>
           </div>
         </div>
@@ -108,9 +112,10 @@
           <label for="re_ohm">R<sub>E</sub> <span>(Emitter Resistor)</span></label>
           <div class="control with-select">
             <input id="re_ohm" type="number" step="any" name="re_ohm" value="{{ raw.re_ohm }}">
-            <select name="re_ohm_unit" aria-label="RE unit">
+            <select id="re_ohm_unit" name="re_ohm_unit" aria-label="RE unit">
               <option value="ohm" {{ 'selected' if units.re_ohm == 'ohm' else '' }}>&#937;</option>
               <option value="kohm" {{ 'selected' if units.re_ohm == 'kohm' else '' }}>k&#937;</option>
+              <option value="mohm" {{ 'selected' if units.re_ohm == 'mohm' else '' }}>M&#937;</option>
             </select>
           </div>
         </div>
@@ -284,7 +289,7 @@
       {% else %}
         <div class="empty-state">
           <p>Enter the circuit values and press <strong>Calculate DC Bias</strong>.</p>
-          <p class="muted">Voltages in V, resistances in &#937; or k&#937;.</p>
+          <p class="muted">Voltages in V, resistances in &#937;, k&#937; or M&#937;.</p>
         </div>
       {% endif %}
     </section>

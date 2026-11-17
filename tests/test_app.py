@@ -102,6 +102,32 @@ class TestAppRoutes(unittest.TestCase):
         self.assertIn("saturation", html)
         self.assertIn("not a usable bias point", html)
 
+    def test_mohm_units_are_converted(self):
+        data = dict(mode="fixed", vcc_v="12", rb_ohm="1", rb_ohm_unit="mohm",
+                    rc_ohm="2.2", rc_ohm_unit="kohm", beta="100", vbe_v="0.70")
+        response = self.client.post("/calculate", data=data)
+        self.assertEqual(response.status_code, 200)
+        html = response.data.decode("utf-8")
+        self.assertIn("9.514 V", html)
+        self.assertIn("1.13 mA", html)
+
+    def test_mohm_option_present_on_every_resistor_unit_select(self):
+        html = self.client.get("/").data.decode("utf-8")
+        self.assertEqual(html.count('value="mohm"'), 5)
+
+    def test_selected_unit_is_retained_after_post(self):
+        data = dict(mode="fixed", vcc_v="12", rb_ohm="1", rb_ohm_unit="mohm",
+                    rc_ohm="2.2", rc_ohm_unit="kohm", beta="100", vbe_v="0.70")
+        html = self.client.post("/calculate", data=data).data.decode("utf-8")
+        self.assertIn('value="mohm" selected', html)
+
+    def test_unknown_unit_falls_back_to_ohm(self):
+        data = dict(mode="fixed", vcc_v="12", rb_ohm="1000000", rb_ohm_unit="gohm",
+                    rc_ohm="2200", beta="100", vbe_v="0.70")
+        response = self.client.post("/calculate", data=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("1.13 mA", response.data.decode("utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()
