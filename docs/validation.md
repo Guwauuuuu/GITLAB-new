@@ -112,3 +112,38 @@ V<sub>CC</sub> = 12 V, R<sub>C</sub> = 2.2 kΩ, β = 100, V<sub>BE</sub> = 0.70 
 - ฟอร์มใช้ `novalidate` เพื่อให้ Python เป็นผู้ตรวจค่าเพียงผู้เดียว: ถ้าผู้ใช้พิมพ์ค่าไม่ครบ (เช่น `1e`) ไว้ในช่องที่โหมดใหม่ซ่อนไว้ ปุ่ม Calculate ยังกดได้และไม่ค้าง (ตรวจแล้ว: R1 = `1e` → สลับเป็น Fixed → คำนวณได้ I<sub>C</sub> 1.13 mA, V<sub>CE</sub> 9.514 V)
 - ระหว่างตรวจพบและแก้ 3 บุก่อนปิดรอบ: ช่องว่างหน้าค่าใน SVG, R1/R2 ที่ซ่อนรวมกันเป็นกลุ่มเดียว, และสไตล์ `.field { display: grid }` ที่ทำให้แอตทริบิวต์ `hidden` ไม่ทำงาน (เพิ่มกฎ `[hidden] { display: none !important; }`) — ทั้งสามมีเทสครอบแล้ว
 
+## รอบที่ 3 — ทุกช่องแสดงตลอดเวลา (17 พ.ย. 2026)
+
+เปลี่ยนพฤติกรรม: ฟอร์มแสดงช่องกรอกครบ 8 ช่อง (V<sub>CC</sub>, R1, R2, R<sub>B</sub>, R<sub>C</sub>, R<sub>E</sub>, β, V<sub>BE</sub>) ทุกโหมด
+และ `app.py` อ่าน/ตรวจค่าเฉพาะช่องที่โหมดนั้นใช้ (`MODE_FIELDS`) ค่าที่ค้างในช่องอื่นถูกข้ามทั้งหมด
+รูปวงจร SVG ยังแสดงเฉพาะอุปกรณ์ของโหมดที่เลือกตามเดิม
+
+### ตารางผลตรวจ B1–B5
+
+| ID | การกระทำ | ค่าคาดหมาย | ผลที่เห็น | สถานะ |
+| --- | --- | --- | --- | --- |
+| B1 | เปิด `/` กรอก R1 = 100 kΩ, R2 = 22 kΩ แล้วคลิกป้าย **Fixed Bias** | ช่องทั้ง 8 ยังแสดง, ค่า R1/R2 ยังอยู่, SVG ซ่อน R1/R2/divider-tap และแสดง R<sub>B</sub> | 8/8 ช่อง `display: grid` ไม่มี `hidden`; R1 = 100, R2 = 22 ยังอยู่; `r1`/`r2`/`divider-tap` = `is-hidden`, `rb` แสดง | **PASS** |
+| B2 | โหมด Fixed: R1 = -5 kΩ, R2 = 0, R<sub>E</sub> = 0 (ค่าเสียที่โหมดนี้ไม่ใช้), R<sub>B</sub> = 1 MΩ, R<sub>C</sub> = 2.2 kΩ, β 100, V<sub>BE</sub> 0.70 V → Calculate | HTTP 200, ไม่มี error, I<sub>C</sub> 1.13 mA, V<sub>CE</sub> 9.514 V | ไม่มีกล่อง error; I<sub>C</sub> **1.13 mA**, V<sub>CE</sub> **9.514 V**; ค่า R1 = -5, R2 = 0, R<sub>E</sub> = 0 ยังคงอยู่และไม่ถูกตรวจ; หน่วย MΩ ของ R<sub>B</sub> ยังถูกเลือก | **PASS** |
+| B3 | โหมด Emitter: R<sub>B</sub> 1000 kΩ, R<sub>C</sub> 2.2 kΩ, R<sub>E</sub> 1 kΩ (R1 = -5, R2 = 0 ค้างอยู่) → Calculate | HTTP 200, I<sub>C</sub> 1.03 mA, V<sub>CE</sub> 8.705 V | I<sub>C</sub> **1.03 mA**, V<sub>CE</sub> **8.705 V**; 8/8 ช่องแสดง; SVG ซ่อน R1/R2/tap แสดง R<sub>B</sub> และ R<sub>E</sub> | **PASS** |
+| B4 | โหมด Divider: V<sub>CC</sub> 12 V, R1 100 kΩ, R2 22 kΩ, R<sub>C</sub> 2.2 kΩ, R<sub>E</sub> 1 kΩ, β 100, V<sub>BE</sub> 0.70 V → Calculate | ผลเท่ารอบที่ 2: I<sub>C</sub> 1.23 mA, V<sub>CE</sub> 8.052 V | I<sub>C</sub> **1.23 mA**, V<sub>CE</sub> **8.052 V**; 8/8 ช่องแสดง; SVG แสดง R1/R2/tap/R<sub>E</sub> ซ่อน R<sub>B</sub> | **PASS** |
+| B5 | โหมด Fixed: R<sub>B</sub> = 0 kΩ → Calculate | แจ้งเตือน, POST 400, ไม่มีตารางผล, ค่าและโหมดยังอยู่ | **“RB must be greater than 0”**; ไม่มี `.result-table`; `[POST] /calculate => [400] BAD REQUEST`; โหมด Fixed, R<sub>B</sub> = 0 (kΩ) และ R1 = 100 ยังอยู่; 8/8 ช่องแสดง | **PASS** |
+
+### ตารางผลตรวจพฤติกรรม UI รอบที่ 3
+
+| หัวข้อ | วิธีตรวจ | ผลที่เห็น | สถานะ |
+| --- | --- | --- | --- |
+| ทุกช่องแสดงตลอดเวลา | อ่าน `hidden` และ computed `display` ของทั้ง 8 `div.field` หลัง POST ทุกโหมด | เห็นครบ V<sub>CC</sub>, R1, R2, R<sub>B</sub>, R<sub>C</sub>, R<sub>E</sub>, β, V<sub>BE</sub> ทั้ง Divider/Fixed/Emitter (ไม่เหลือ `data-field` หรือแอตทริบิวต์ `hidden` ในฟอร์ม) | **PASS** |
+| ค่าที่โหมดไม่ใช้ถูกข้าม | ส่ง R1 = -5 kΩ, R2 = 0, R<sub>E</sub> = 0 พร้อมโหมด Fixed (B2) | คำนวณผ่านด้วย I<sub>C</sub> 1.13 mA ไม่มี error | **PASS** |
+| รูปวงจรยังตรงโหมด | อ่านคลาสของ `[data-component]` ทั้ง 3 โหมด | Divider → R1/R2/tap/R<sub>E</sub>; Fixed → R<sub>B</sub>; Emitter → R<sub>B</sub>/R<sub>E</sub> | **PASS** |
+
+### ภาพหลักฐานรอบที่ 3 (โฟลเดอร์ `.playwright-mcp/`, ไม่ได้ commit)
+
+- `b1-fixed-all-fields.png` — โหมด Fixed แสดงช่องครบ 8 ช่องพร้อมค่า R1/R2 ที่ค้างจากโหมด Divider
+- `b5-error-all-fields.png` — หน้า 400 หลัง R<sub>B</sub> = 0 โดยทุกช่องยังแสดงและค่ายังอยู่
+
+### ข้อสังเกตจากการตรวจรอบที่ 3
+
+- ช่องกรอกเป็น `type="number"` เบราว์เซอร์จึงตัดค่าที่ไม่ใช่ตัวเลข (เช่น `1e`) ทิ้งเป็นค่าว่าง การทดสอบค่าเสียที่โหมดไม่ใช้จึงใช้ค่าที่ parse ได้แต่ผิดเงื่อนไข (-5, 0) ซึ่งแรงกว่าเดิม เพราะถ้าโค้ดเผลอตรวจช่องนั้นจะได้ 400 ทันที
+- หน่วย MΩ/kΩ ของช่องที่โหมดไม่ใช้ยังถูกส่งไปกับฟอร์มแต่ไม่ถูกอ่าน (`MODE_FIELDS` เป็นตัวกำหนด) จึงไม่มีทางรั่วเข้าสมการ
+
+
