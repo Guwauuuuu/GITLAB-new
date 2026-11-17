@@ -182,6 +182,13 @@ class TestAppRoutes(unittest.TestCase):
         self.assertRegex(html, r'data-component="r1"[^>]*is-hidden')
         self.assertNotRegex(html, r'data-component="rb"[^>]*is-hidden')
 
+    def test_stylesheet_uses_dark_theme_tokens(self):
+        import pathlib
+        css = pathlib.Path("static/style.css").read_text(encoding="utf-8")
+        for token in ("--bg: #0B0D10", "--panel: #14171C", "--ink: #E8EAF0", "--accent: #F5B301"):
+            self.assertIn(token, css)
+        self.assertIn(".is-hidden", css)
+
 
 if __name__ == "__main__":
     unittest.main()
