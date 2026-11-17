@@ -218,7 +218,11 @@ class TestAppRoutes(unittest.TestCase):
     def test_stylesheet_does_not_override_the_hidden_attribute(self):
         import pathlib
         css = pathlib.Path("static/style.css").read_text(encoding="utf-8")
-        self.assertIn("[hidden]", css)
+        self.assertRegex(css, r"\[hidden\]\s*\{[^}]*display:\s*none\s*!important")
+
+    def test_form_opts_out_of_native_validation(self):
+        html = self.client.get("/").data.decode("utf-8")
+        self.assertRegex(html, r'<form[^>]*method="post"[^>]*novalidate')
 
 
 if __name__ == "__main__":
