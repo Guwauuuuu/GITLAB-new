@@ -7,6 +7,7 @@
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const API_URL = "/api/ce-simulate";
+const RUN_LABEL = "Run ngspice Simulation";
 
 const UNIT_SYMBOLS = {
   ohm: "Ω", kohm: "kΩ", mohm: "MΩ",
@@ -14,6 +15,21 @@ const UNIT_SYMBOLS = {
   mv: "mV", v: "V",
   hz: "Hz", khz: "kHz", mhz: "MHz",
 };
+
+const ERROR_FIELDS = [
+  ["Source amplitude", "source_amp"],
+  ["Source frequency", "source_freq"],
+  ["VBE", "vbe_v"],
+  ["VCC", "vcc_v"],
+  ["R1", "r1"],
+  ["R2", "r2"],
+  ["RC", "rc"],
+  ["RE", "re"],
+  ["RL", "rl"],
+  ["Cin", "cin"],
+  ["Cout", "cout"],
+  ["beta", "beta"],
+];
 
 let runToken = 0;
 
@@ -32,6 +48,48 @@ function formatHz(value) {
   return `${value.toFixed(0)} Hz`;
 }
 
+function clearFieldErrors() {
+  document.querySelectorAll("#ce-form .field-error").forEach((node) => node.remove());
+  document.querySelectorAll("#ce-form .field.has-error").forEach((field) => field.classList.remove("has-error"));
+  document.querySelectorAll('#ce-form [aria-invalid="true"]').forEach((input) => {
+    input.removeAttribute("aria-invalid");
+    input.removeAttribute("aria-describedby");
+  });
+}
+
+function fieldForError(message) {
+  const text = String(message || "").toLowerCase();
+  const match = ERROR_FIELDS.find(([label]) => text.includes(label.toLowerCase()));
+  return match ? match[1] : null;
+}
+
+function markFieldErrors(messages) {
+  clearFieldErrors();
+  let firstInvalid = null;
+
+  messages.forEach((message) => {
+    const fieldId = fieldForError(message);
+    const input = fieldId ? $(fieldId) : null;
+    if (!input) return;
+
+    const field = input.closest(".field");
+    const errorId = `${fieldId}-error`;
+    input.setAttribute("aria-invalid", "true");
+    input.setAttribute("aria-describedby", errorId);
+    if (field) field.classList.add("has-error");
+
+    const note = document.createElement("p");
+    note.id = errorId;
+    note.className = "field-error";
+    note.textContent = message;
+    if (field) field.insertAdjacentElement("afterend", note);
+
+    if (!firstInvalid) firstInvalid = input;
+  });
+
+  return firstInvalid;
+}
+
 function setStatus(state, detail) {
   const box = $("engine-status");
   if (!box) return;
@@ -39,9 +97,22 @@ function setStatus(state, detail) {
   const labels = { idle: "Idle", running: "Running", success: "Success", error: "Error" };
   $("engine-state").textContent = labels[state] || state;
   $("engine-detail").textContent = detail;
+
+  const runStatus = $("run-status");
+  const runText = $("run-status-text");
+  const runLabels = {
+    idle: "Ready",
+    running: "Running ngspice…",
+    success: "ngspice success",
+    error: "Simulation failed",
+  };
+  if (runStatus) runStatus.className = `run-status ${state}`;
+  if (runText) runText.textContent = runLabels[state] || labels[state] || state;
 }
 
 function clearResults() {
+  clearFieldErrors();
+  setSlot("vce", "= ?");
   for (const id of ["op-results", "ac-results", "tran-results"]) {
     const section = $(id);
     if (section) section.hidden = true;
@@ -69,19 +140,26 @@ function showError(body) {
   box.hidden = false;
   box.textContent = "";
 
-  const addLine = (message) => {
+  const messages = [];
+  if (body && Array.isArray(body.errors) && body.errors.length) {
+    messages.push(...body.errors);
+  } else if (body && body.error) {
+    messages.push(body.error);
+  } else {
+    messages.push("Simulation failed without an error message.");
+  }
+
+  messages.forEach((message) => {
     const line = document.createElement("div");
     line.className = "error";
     line.textContent = message;
     box.appendChild(line);
-  };
+  });
 
-  if (body && Array.isArray(body.errors) && body.errors.length) {
-    body.errors.forEach(addLine);
-  } else if (body && body.error) {
-    addLine(body.error);
-  } else {
-    addLine("Simulation failed without an error message.");
+  const firstInvalid = markFieldErrors(messages);
+  if (firstInvalid) {
+    firstInvalid.focus({ preventScroll: true });
+    firstInvalid.scrollIntoView({ block: "center" });
   }
 
   if (body && body.stderr) {
@@ -129,6 +207,7 @@ function updateCircuitLabels() {
   const amp = raw("source_amp");
   const freq = raw("source_freq");
   setSlot("source", `${amp || "—"} ${symbol("source_amp_unit")} / ${freq || "—"} ${symbol("source_freq_unit")}`);
+  setSlot("vce", "= ?");
 }
 
 // ---------------------------------------------------------------------------
@@ -148,6 +227,57 @@ function addText(svg, x, y, text, attrs) {
   node.textContent = text;
   svg.appendChild(node);
   return node;
+}
+
+function niceTicks(min, max, targetCount) {
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min === max) {
+    const center = Number.isFinite(min) ? min : 0;
+    return { low: center - 1, high: center + 1, ticks: [center - 1, center, center + 1] };
+  }
+
+  const rawStep = (max - min) / Math.max(targetCount, 1);
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const normalized = rawStep / magnitude;
+  const niceStep = (
+    normalized <= 1 ? 1
+      : normalized <= 2 ? 2
+        : normalized <= 2.5 ? 2.5
+          : normalized <= 5 ? 5 : 10
+  ) * magnitude;
+  const low = Math.floor(min / niceStep) * niceStep;
+  const high = Math.ceil(max / niceStep) * niceStep;
+  const count = Math.round((high - low) / niceStep);
+  const ticks = [];
+  for (let index = 0; index <= count; index += 1) {
+    ticks.push(Number((low + index * niceStep).toFixed(6)));
+  }
+  return { low, high, ticks };
+}
+
+function tickLabel(value) {
+  return String(Number(value.toFixed(2)));
+}
+
+function addLegend(svg, entries, x, y) {
+  if (!entries || !entries.length) return;
+  const width = Math.max(...entries.map((entry) => entry.label.length)) * 6.2 + 48;
+  const height = entries.length * 16 + 8;
+  svg.appendChild(svgEl("rect", {
+    x: x - 8, y: y - 14, width, height,
+    fill: "#14171C", stroke: "#262B33", "stroke-width": 1, rx: 4, opacity: 0.94,
+  }));
+
+  entries.forEach((entry, index) => {
+    const lineY = y + index * 16;
+    svg.appendChild(svgEl("line", {
+      x1: x, y1: lineY - 4, x2: x + 18, y2: lineY - 4,
+      stroke: entry.color, "stroke-width": 2.2,
+      "stroke-dasharray": entry.dash ? "5 4" : "",
+    }));
+    addText(svg, x + 24, lineY, entry.label, {
+      fill: "#C9D1DE", "font-size": "11",
+    });
+  });
 }
 
 function frequencyPlot(container, values, options) {
@@ -184,7 +314,7 @@ function frequencyPlot(container, values, options) {
       x1: margin.left, y1: y, x2: margin.left + plotW, y2: y,
       stroke: "#262B33", "stroke-width": 1,
     }));
-    addText(svg, margin.left - 10, y + 4, String(tick), {
+    addText(svg, margin.left - 10, y + 4, tickLabel(tick), {
       "text-anchor": "end", fill: "#9AA3B2", "font-size": "12",
       "font-family": "ui-monospace, Consolas, monospace",
     });
@@ -215,7 +345,7 @@ function frequencyPlot(container, values, options) {
     stroke: "#9AA3B2", "stroke-width": 1,
   }));
 
-  if (Number.isFinite(options.zeroLine)) {
+  if (Number.isFinite(options.zeroLine) && options.zeroLine >= yMin && options.zeroLine <= yMax) {
     const y = yOf(options.zeroLine);
     svg.appendChild(svgEl("line", {
       x1: margin.left, y1: y, x2: margin.left + plotW, y2: y,
@@ -238,6 +368,8 @@ function frequencyPlot(container, values, options) {
     "stroke-linejoin": "round", "stroke-linecap": "round",
   }));
 
+  addLegend(svg, options.legend, margin.left + plotW - 176, margin.top + 12);
+
   addText(svg, margin.left + plotW / 2, height - 8, "Frequency (Hz, log scale)", {
     "text-anchor": "middle", fill: "#E8EAF0", "font-size": "13",
   });
@@ -254,47 +386,42 @@ function frequencyPlot(container, values, options) {
 
 function drawGainPlot(container, spice) {
   const gainDb = spice.gain_db;
-  let low = Math.floor((Math.min(...gainDb) - 1) / 5) * 5;
-  let high = Math.ceil((Math.max(...gainDb) + 1) / 5) * 5;
-  if (high - low < 10) {
-    low -= 5;
-    high += 5;
+  let low = Math.floor(Math.min(...gainDb) - 1);
+  let high = Math.ceil(Math.max(...gainDb) + 1);
+  if (high - low < 4) {
+    low -= 1;
+    high += 1;
   }
-  const ticks = [];
-  const step = (high - low) / 6;
-  for (let i = 0; i <= 6; i += 1) ticks.push(Number((low + step * i).toFixed(1)));
+  const range = niceTicks(low, high, 5);
 
   frequencyPlot(container, { freq: spice.freq_hz, y: gainDb }, {
     title: "Gain Magnitude — 20·log10(|Vout/Vin|)",
     yLabel: "Gain (dB, re 1 V/V)",
-    yMin: low,
-    yMax: high,
-    yTicks: ticks,
+    yMin: range.low,
+    yMax: range.high,
+    yTicks: range.ticks,
     color: "#F5B301",
+    legend: [{ label: "|Vout/Vin| (dB)", color: "#F5B301" }],
   });
 }
 
 function drawPhasePlot(container, spice) {
   const phase = spice.phase_deg;
-  let low = Math.floor((Math.min(...phase) - 5) / 10) * 10;
-  let high = Math.ceil((Math.max(...phase) + 5) / 10) * 10;
-  if (high - low < 20) {
-    low -= 10;
-    high += 10;
-  }
-  const ticks = [];
-  const step = (high - low) / 6;
-  for (let i = 0; i <= 6; i += 1) ticks.push(Math.round(low + step * i));
+  const range = niceTicks(Math.min(...phase) - 4, Math.max(...phase) + 4, 6);
 
   frequencyPlot(container, { freq: spice.freq_hz, y: phase }, {
     title: "Phase — unwrapped (degrees)",
     yLabel: "Phase (deg)",
-    yMin: low,
-    yMax: high,
-    yTicks: ticks,
+    yMin: range.low,
+    yMax: range.high,
+    yTicks: range.ticks,
     color: "#4ADE80",
     zeroLine: -180,
     zeroLabel: "-180° (inversion)",
+    legend: [
+      { label: "Phase (unwrapped)", color: "#4ADE80" },
+      { label: "-180° reference", color: "#F5B301", dash: true },
+    ],
   });
 }
 
@@ -325,8 +452,9 @@ function drawTranPlot(container, spice) {
   let low = Math.min(...vin, ...vout) * voltScale;
   let high = Math.max(...vin, ...vout) * voltScale;
   const pad = Math.max((high - low) * 0.12, 0.5);
-  low -= pad;
-  high += pad;
+  const yRange = niceTicks(low - pad, high + pad, 6);
+  low = yRange.low;
+  high = yRange.high;
 
   const svg = svgEl("svg", {
     viewBox: `0 0 ${width} ${height}`,
@@ -339,19 +467,17 @@ function drawTranPlot(container, spice) {
   const xOf = (time) => margin.left + (time / tMax) * plotW;
   const yOf = (value) => margin.top + plotH - ((value - low) / (high - low)) * plotH;
 
-  const yTicks = 6;
-  for (let i = 0; i <= yTicks; i += 1) {
-    const value = low + ((high - low) * i) / yTicks;
+  yRange.ticks.forEach((value) => {
     const y = yOf(value);
     svg.appendChild(svgEl("line", {
       x1: margin.left, y1: y, x2: margin.left + plotW, y2: y,
       stroke: "#262B33", "stroke-width": 1,
     }));
-    addText(svg, margin.left - 10, y + 4, value.toFixed(1), {
+    addText(svg, margin.left - 10, y + 4, tickLabel(value), {
       "text-anchor": "end", fill: "#9AA3B2", "font-size": "12",
       "font-family": "ui-monospace, Consolas, monospace",
     });
-  }
+  });
 
   const xTicks = 6;
   for (let i = 0; i <= xTicks; i += 1) {
@@ -475,6 +601,7 @@ function renderOp(spice) {
   $("op-ib").textContent = fmt(spice.ib_a * 1e6, 2);
   $("op-ic").textContent = fmt(spice.ic_a * 1e3, 3);
   setRegion("op-region", spice.region);
+  setSlot("vce", `= ${fmt(spice.vce_v, 3)} V`);
 }
 
 function renderAc(spice) {
@@ -492,7 +619,7 @@ function renderAc(spice) {
   } else if (Number.isFinite(low)) {
     $("ac-band").textContent = `> ${formatHz(low)}`;
   } else {
-    $("ac-band").textContent = "outside 10 Hz – 10 MHz";
+    $("ac-band").textContent = "not within 10 Hz – 10 MHz";
   }
 
   drawGainPlot($("ac-mag-plot"), spice);
@@ -535,7 +662,11 @@ async function runSimulation(event) {
 
   clearResults();
   setStatus("running", "Engine: ngspice_con · Model: Q2N2222 · running batch analysis");
-  if (button) button.disabled = true;
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Running…";
+    button.setAttribute("aria-busy", "true");
+  }
 
   try {
     const form = $("ce-form");
@@ -579,7 +710,11 @@ async function runSimulation(event) {
     showError({ error: `Request failed: ${error.message}` });
     setStatus("error", `Engine: ngspice_con · Model: Q2N2222 · request failed`);
   } finally {
-    if (token === runToken && button) button.disabled = false;
+    if (token === runToken && button) {
+      button.disabled = false;
+      button.textContent = RUN_LABEL;
+      button.removeAttribute("aria-busy");
+    }
   }
 }
 

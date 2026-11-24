@@ -4,3 +4,8 @@ __pycache__/
 .env
 .superpowers/
 .playwright-mcp/
+
+# ngspice scratch output (netlists, logs, raw data)
+*.raw
+*.log
+*.cir

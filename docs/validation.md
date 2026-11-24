@@ -146,4 +146,71 @@ V<sub>CC</sub> = 12 V, R<sub>C</sub> = 2.2 kΩ, β = 100, V<sub>BE</sub> = 0.70 
 - ช่องกรอกเป็น `type="number"` เบราว์เซอร์จึงตัดค่าที่ไม่ใช่ตัวเลข (เช่น `1e`) ทิ้งเป็นค่าว่าง การทดสอบค่าเสียที่โหมดไม่ใช้จึงใช้ค่าที่ parse ได้แต่ผิดเงื่อนไข (-5, 0) ซึ่งแรงกว่าเดิม เพราะถ้าโค้ดเผลอตรวจช่องนั้นจะได้ 400 ทันที
 - หน่วย MΩ/kΩ ของช่องที่โหมดไม่ใช้ยังถูกส่งไปกับฟอร์มแต่ไม่ถูกอ่าน (`MODE_FIELDS` เป็นตัวกำหนด) จึงไม่มีทางรั่วเข้าสมการ
 
+---
 
+# ผลตรวจ Lab 4 — CE Simulator v1 (B1–B8)
+
+- **วันที่ตรวจ:** 2026-11-24
+- **เว็บที่ตรวจ:** http://127.0.0.1:5000/ (Lab 3 DC Bias) และ http://127.0.0.1:5000/ce-simulator (CE Simulator v1)
+- **วิธีตรวจ:** Playwright MCP เท่านั้น (browser automation; ไม่ใช้ `curl` และไม่ใช้ค่าจาก unittest เป็นผลตรวจ)
+- **ngspice:** ngspice-47 (`ngspice_con`)
+- **BJT model:** Q2N2222 Gummel-Poon (`IS=14.34f`, `BF=255.9`, `VAF=74.03`, `CJE=22.01p`, `VJE=.75`)
+- **Engine status ที่หน้าแสดง:** `Engine: ngspice_con · Model: Q2N2222`
+- **Viewport:** 1280×900 (desktop) และ 390×844 (mobile)
+- **Tolerance:** ค่าที่แสดงเป็นค่าปัดจากผลจริง; เกณฑ์ Lab 3 ใช้ ΔI<sub>C</sub> ≤ 0.01 mA และ ΔV<sub>CE</sub> ≤ 0.02 V
+
+## ตารางผลตรวจ B1–B8
+
+| Case | วิธีตรวจ | อินพุต | ค่าคาดหมาย/อ้างอิง | ผลที่เห็น | หลักฐาน | สถานะ |
+| --- | --- | --- | --- | --- | --- | --- |
+| B1 — Divider | เปิด `/` → fill form → เลือกหน่วย kΩ → Calculate | Mode = Voltage Divider<br>V<sub>CC</sub> = 12 V<br>R1 = 100 kΩ<br>R2 = 22 kΩ<br>R<sub>C</sub> = 2.2 kΩ<br>R<sub>E</sub> = 1 kΩ<br>β = 100<br>V<sub>BE</sub> = 0.70 V | I<sub>C</sub> = 1.23 mA<br>V<sub>CE</sub> = 8.052 V<br>V<sub>B</sub> = 1.942 V<br>V<sub>E</sub> = 1.242 V<br>V<sub>C</sub> = 9.294 V | I<sub>C</sub> = **1.23 mA**<br>V<sub>CE</sub> = **8.052 V**<br>V<sub>B</sub> = 1.942 V · V<sub>E</sub> = 1.242 V · V<sub>C</sub> = 9.294 V<br>I<sub>B</sub> = 12.3 µA · I<sub>E</sub> = 1.24 mA<br>nodal check: ✓ 8.052 V vs 8.052 V (rel. diff 1.79e-16) | `docs/captures/b1-divider.png` | **PASS** |
+| B1 — Fixed | เปิด `/` → เลือก Fixed Bias → fill form → Calculate | Mode = Fixed<br>V<sub>CC</sub> = 12 V<br>R<sub>B</sub> = 1000 kΩ<br>R<sub>C</sub> = 2.2 kΩ<br>β = 100<br>V<sub>BE</sub> = 0.70 V | I<sub>C</sub> = 1.13 mA<br>V<sub>CE</sub> = 9.514 V | I<sub>C</sub> = **1.13 mA**<br>V<sub>CE</sub> = **9.514 V**<br>V<sub>B</sub> = 0.700 V · V<sub>E</sub> = 0.000 V · V<sub>C</sub> = 9.514 V<br>I<sub>B</sub> = 11.3 µA · I<sub>E</sub> = 1.14 mA<br>โหมด Fixed และหน่วย kΩ ยังถูกเลือกหลัง POST | `docs/captures/b1-fixed.png` | **PASS** |
+| B1 — Emitter | เปิด `/` → เลือก Emitter Bias → fill form → Calculate | Mode = Emitter<br>V<sub>CC</sub> = 12 V<br>R<sub>B</sub> = 1000 kΩ<br>R<sub>C</sub> = 2.2 kΩ<br>R<sub>E</sub> = 1 kΩ<br>β = 100<br>V<sub>BE</sub> = 0.70 V | I<sub>C</sub> = 1.03 mA<br>V<sub>CE</sub> = 8.705 V | I<sub>C</sub> = **1.03 mA**<br>V<sub>CE</sub> = **8.705 V**<br>V<sub>B</sub> = 1.737 V · V<sub>E</sub> = 1.037 V · V<sub>C</sub> = 9.742 V<br>I<sub>B</sub> = 10.3 µA · I<sub>E</sub> = 1.04 mA | `docs/captures/b1-emitter.png` | **PASS** |
+| B2 — DC SPICE | เปิด `/ce-simulator` → เลือก DC Operating Point → Run ngspice Simulation | ค่าเริ่มต้น: V<sub>CC</sub> 12 V, R1 100 kΩ, R2 22 kΩ, R<sub>C</sub> 2.2 kΩ, R<sub>E</sub> 1 kΩ, R<sub>L</sub> 10 kΩ, C<sub>in</sub>/C<sub>out</sub> 10 µF, source 10 mV<sub>peak</sub> / 1 kHz, β 100, V<sub>BE</sub> 0.70 V | ต้องเป็นผล `.op` จาก ngspice จริง โดยมี model และ run status; ค่า SPICE อาจต่างจาก analytical เพราะใช้ Q2N2222 Gummel-Poon | SPICE: V<sub>B</sub> **2.016 V**, V<sub>E</sub> **1.364 V**, V<sub>C</sub> **9.017 V**, V<sub>CE</sub> **7.653 V**, I<sub>B</sub> **8.22 µA**, I<sub>C</sub> **1.356 mA**, region active<br>Engine: `ngspice_con`, model `Q2N2222`, elapsed 0.12 s<br>Analytical reference แยกการ์ด: V<sub>B</sub> 1.942 V, V<sub>E</sub> 1.242 V, V<sub>C</sub> 9.294 V, V<sub>CE</sub> 8.052 V, I<sub>B</sub> 12.3 µA, I<sub>C</sub> 1.23 mA | `docs/captures/b2-dc-op.png`<br>POST `/api/ce-simulate` = 200; response มี netlist `.control op` + `wrdata op.txt v(b) v(e) v(c) @q1[ib] @q1[ic]`, `engine.name = ngspice_con`, `model_name = Q2N2222`, `status = success` | **PASS** |
+| B3 — เปลี่ยน R<sub>E</sub> | เปลี่ยนเฉพาะ R<sub>E</sub> 1 → 2 kΩ → Run `.op` → Run `.ac` | ค่าเดิมทั้งหมด ยกเว้น R<sub>E</sub> = 2 kΩ | Q-point เปลี่ยนและ gain ลดลง; ค่าอื่นไม่ถูกแก้ | `.op`: V<sub>B</sub> 2.082 V, V<sub>E</sub> 1.447 V, V<sub>C</sub> 10.418 V, V<sub>CE</sub> **8.971 V**, I<sub>B</sub> 4.57 µA, I<sub>C</sub> **0.719 mA** (จาก 1.356 mA)<br>`.ac`: gain **0.920 V/V** (จาก 1.758), **−0.72 dB** (จาก 4.90), phase −226.8°; R<sub>E</sub> ยังเป็น 2 kΩ | `docs/captures/b3-re2-op.png`<br>`docs/captures/b3-re2-ac.png` | **PASS** |
+| B4 — AC | Run `.ac` ด้วยค่าเริ่มต้น (R<sub>E</sub> กลับเป็น 1 kΩ) | V<sub>CC</sub> 12 V, R1 100 kΩ, R2 22 kΩ, R<sub>C</sub> 2.2 kΩ, R<sub>E</sub> 1 kΩ, R<sub>L</sub> 10 kΩ, source 10 mV / 1 kHz | Bode magnitude/phase มีแกน หน่วย และ legend ถูกต้อง | Gain **1.758 V/V**, **4.90 dB**, phase **−180.0°**<br>Magnitude: x = 10 Hz–10 MHz (log), y = dB re 1 V/V, legend `\|Vout/Vin\| (dB)`<br>Phase: y = deg, ticks −230…−160, legend `Phase (unwrapped)` + `−180° reference`<br>แต่ละกราฟมี 1 trace, viewBox 900×320 | `docs/captures/b4-ac-default.png` | **PASS** |
+| B5 — Transient | Run `.tran` ที่ 10 mV peak, 1 kHz | source 10 mV<sub>peak</sub> / 1 kHz; ค่าเริ่มต้นอื่น ๆ | V<sub>in</sub> ≈ 20 mV<sub>pp</sub>, V<sub>out</sub> ≈ 35 mV<sub>pp</sub>, 180° inversion | V<sub>in</sub> **20.00 mV<sub>pp</sub>**, V<sub>out</sub> **35.15 mV<sub>pp</sub>**, gain **1.758 V/V**, inversion **180° (inverted)**<br>แกน x = Time (ms) 0–4 ms, แกน y = Voltage (mV) −30…30, 2 traces, legend Vin(t)/Vout(t)<br>API: 808 points, correlation(V<sub>in</sub>, V<sub>out</sub>) = **−0.9999975**; ที่ V<sub>in</sub> peak +9.9996 mV, V<sub>out</sub> = −17.5438 mV (ใกล้ trough −17.5453 mV) | `docs/captures/b5-tran-default.png`<br>POST `/api/ce-simulate` = 200; `spice.time_s`, `spice.vin_v`, `spice.vout_v` | **PASS** |
+| B6 — เปลี่ยน Amplitude | เปลี่ยน V<sub>in</sub> peak 10 → 20 mV → Run `.tran` | source 20 mV<sub>peak</sub> / 1 kHz | waveform โตขึ้นตาม amplitude, gain/inversion เดิม | V<sub>in</sub> **40.00 mV<sub>pp</sub>**, V<sub>out</sub> **70.31 mV<sub>pp</sub>**, gain **1.758 V/V**, inversion **180°** | `docs/captures/b6-source-amp20.png` | **PASS** |
+| B6 — เปลี่ยน Frequency | เปลี่ยน frequency 1 → 2 kHz (amplitude กลับเป็น 10 mV) → Run `.tran` | source 10 mV<sub>peak</sub> / 2 kHz | คาบลดครึ่ง, waveform เปลี่ยนตามความถี่, gain/inversion เดิม | V<sub>in</sub> 20.00 mV<sub>pp</sub>, V<sub>out</sub> 35.15 mV<sub>pp</sub>, gain 1.758, inversion 180°<br>API: `source_freq_hz = 2000`, time end 2 ms, mean period **0.5 ms**, 4 cycles ใน 2 ms; correlation −0.9999995 | `docs/captures/b6-source-freq2k.png`<br>POST `/api/ce-simulate` = 200 | **PASS** |
+| B7 — Invalid | ตั้ง R<sub>E</sub> = 0 → Run `.op` | R<sub>E</sub> = 0 kΩ; ค่าอื่นถูกต้อง | error state สุภาพ, HTTP 400, ไม่มีผลเดิมค้าง, ไม่มี fake success | Engine **Error**, run status **Simulation failed**, ข้อความ **“RE must be greater than 0”**<br>`#re` มี `aria-invalid="true"`, `aria-describedby="re-error"`, inline error, โฟกัสที่ R<sub>E</sub><br>`#op-results`, `#ac-results`, `#tran-results` ถูกซ่อนทั้งหมด; ไม่พบ `7.653 V` หรือ `35.15 mV` เดิม | `docs/captures/b7-invalid-re0.png`<br>POST `/api/ce-simulate` = **400 BAD REQUEST**; response `{"status":"error","errors":["RE must be greater than 0"]}` | **PASS** |
+| B8 — Desktop | 1280×900, Run `.op` | ค่าเริ่มต้น | layout อ่านง่าย, ไม่มี horizontal overflow, model/status มองเห็น | `scrollWidth 1265 ≤ 1280`; 3 form groups; SPICE สีเหลือง `rgb(255,201,51)` แยกจาก analytical สีขาว `rgb(232,234,240)`; V<sub>CE</sub> 7.653 V; engine success | `docs/captures/b8-desktop-1280.png` | **PASS** |
+| B8 — Mobile | 390×844, Run `.op` แล้ว Run `.ac` | ค่าเริ่มต้น | ไม่มี page overflow, สถานะ engine เห็นบนมือถือ, กราฟอ่านได้ | `scrollWidth 375 ≤ 390`; header 162 px; `#run-status` แสดง `ngspice success` ใต้ปุ่ม; 3 groups กว้าง 321 px; V<sub>CE</sub> 7.653 V<br>AC: gain 1.758 V/V, 4.90 dB, −180.0°; plot client 320 px, scroll 916 px (horizontal scroll ภายในกราฟ ไม่ทำให้หน้า overflow) | `docs/captures/b8-mobile-390.png`<br>`docs/captures/b8-mobile-390-ac.png` | **PASS** |
+
+## สรุปผล
+
+- ผ่านครบ **8/8 เคส** (B1 ตรวจ 3 โหมด, B6 ตรวจ 2 subcase, B8 ตรวจ 2 viewport)
+- B1 ให้ค่าตรงกับ Lab 3 analytical reference ภายใน tolerance ที่กำหนด
+- B2 ยืนยันว่า `.op` มาจาก ngspice จริง: response มี netlist, `engine.name = ngspice_con`, `model_name = Q2N2222`, `status = success`
+- B5/B6 ยืนยัน phase inversion จากข้อมูลจริง: correlation ระหว่าง V<sub>in</sub> กับ V<sub>out</sub> ≈ −1 และ V<sub>out</sub> อยู่ตรงข้ามกับ V<sub>in</sub>
+- B7 ตอบ 400 และไม่มีผลลัพธ์เดิมค้าง ไม่มี fake success
+- B8 ไม่มี horizontal overflow ทั้ง 1280 px และ 390 px
+
+## ข้อสังเกต (ยังไม่แก้โค้ด)
+
+1. **SPICE กับ analytical ต่างกันโดยเจตนา**: `.op` ของ Q2N2222 ให้ V<sub>CE</sub> 7.653 V ขณะที่ Lab 3 reference ให้ 8.052 V หน้าเว็บแยกสองการ์ดและติดป้าย `SPICE` / `BJT.PY` ชัดเจนแล้ว
+2. **B3: ป้าย “Midband phase”** แสดง −226.8° ที่ 1 kHz เมื่อ R<sub>E</sub> = 2 kΩ ซึ่งไม่ใช่ −180°; เป็นค่าที่คำนวณจากความถี่ source จริง แต่คำว่า “midband” อาจทำให้เข้าใจผิดว่าควรเป็น −180° เสมอ — ควรพิจารณาปรับข้อความในรอบถัดไป (ไม่ใช่ failure ของ B3)
+3. **B4: “−3 dB band”** แสดง `not within 10 Hz – 10 MHz` เพราะ gain ในช่วง sweep ยังลดไม่ถึง 3 dB (ที่ 10 MHz ประมาณ 4.3 dB จาก 4.90 dB) ข้อความนี้ตรงกับข้อมูลจริง
+4. **B8: กราฟบนมือถือ** ใช้ horizontal scroll ภายในกรอบกราฟ (client 320 px, scroll 916 px) เพื่อคงขนาดตัวอักษรให้อ่านได้; หน้าโดยรวมยังกว้าง 375 px ไม่ overflow
+5. Console error 1 รายการใน B7 คือ network response 400 ที่ตั้งใจให้เกิด ไม่ใช่ JavaScript exception
+
+## ขอบเขตการแก้ไขรอบนี้
+
+- ไม่แก้โค้ดแอปพลิเคชัน (`app.py`, `spice_engine.py`, template, CSS, JS) ระหว่างการตรวจ
+- เพิ่มเฉพาะหลักฐานภาพใน `docs/captures/` และบันทึกผลในไฟล์นี้
+
+## Checklist สำหรับส่ง Lab 4
+
+| หัวข้อ | หลักฐาน | สถานะ |
+| --- | --- | --- |
+| ตารางผลตรวจ B1–B8 ครบทุกเคส | หัวข้อ “ตารางผลตรวจ B1–B8” ด้านบน | ✅ |
+| ngspice version | `ngspice-47` (`ngspice_con`) | ✅ |
+| BJT model name | `Q2N2222` Gummel-Poon | ✅ |
+| ภาพหลักฐานครบ | `docs/captures/` จำนวน 14 ไฟล์ (`b1-*` ถึง `b8-mobile-390-ac.png`) | ✅ |
+| ทุกเคสมีสถานะ | PASS 8/8 (B1 3 โหมด, B6 2 subcase, B8 2 viewport) | ✅ |
+| ไม่มี fake success | B7 ตอบ HTTP 400 และซ่อนผลเดิมทั้งหมด | ✅ |
+| Setup/รันแอป/ngspice PATH | `README.md` | ✅ |
+| กฎ provenance SPICE vs analytical | `AGENTS.md` | ✅ |
+| Ignore ไฟล์ชั่วคราว | `.gitignore` มี `*.raw`, `*.log`, `*.cir` | ✅ |
+| Unit tests | `python -m unittest discover -s tests -t . -v` → 74 tests OK | ✅ |
+| Electrical regression | `python -m unittest test_electrical.py -v` → 3 tests OK | ✅ |
+| Frontend syntax | `node --check static/ce_sim.js` → ผ่าน | ✅ |

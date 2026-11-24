@@ -5,7 +5,7 @@
 
 ## BJT Common-Emitter DC Bias web app (ENG29 2121)
 
-แอป Flask คำนวณจุดทำงานกระแสตรงของอัดยิ่งไบโพolar แบบ common-emitter
+แอป Flask คำนวณจุดทำงานกระแสตรงของทรานซิสเตอร์ไบโพลาร์แบบ common-emitter
 ที่ใช้วงจรแบ่งแรงดัน ป้อนค่า VCC, R1, R2, RC, RE, β, VBE แล้วดูผลกับ
 หน่วย ตรวจสอบค่าที่ป้อน แจ้งเตือนเมื่ออยู่นอกภูมิภาค active และเทียบ
 ผลกับการคำนวณอิสระโดยวิธีโหนด (nodal analysis)
@@ -18,47 +18,136 @@
 
 เลือกโหมดจากปุ่ม **Bias Mode** ในฟอร์ม (ช่องกรอกทั้ง 8 ช่องแสดงตลอดทุกโหมด)
 
-### ติดตั้งแพ็กเกจ
+### สิ่งที่ต้องมี (Windows)
 
-ต้องมี Python 3.10 ขึ้นไป และ `pip` ใช้ได้
+- Windows 10/11 (PowerShell หรือ Command Prompt)
+- Python 3.10 ขึ้นไป และ `pip`
+- ngspice เวอร์ชัน Windows ที่มี `ngspice_con.exe` (ดูหัวข้อถัดไป)
+- เบราว์เซอร์รุ่นใหม่ (Chrome/Edge/Firefox)
+
+ตรวจ Python ก่อนเริ่ม:
 
 ```powershell
+py -3 --version
+# ถ้าไม่มี py ให้ใช้:
+python --version
+```
+
+### ติดตั้งแพ็กเกจ Python
+
+แนะนำให้สร้าง virtual environment ในโฟลเดอร์โปรเจกต์:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-ไฟล์ `requirements.txt` ระบุแพ็กเกจที่ต้องใช้ (Flask) — ถ้าติดตั้งใหม่ทั้งเครื่อง
-แนะนำให้สร้าง virtual environment ก่อน:
+ถ้า PowerShell ไม่ยอมรัน `Activate.ps1` ให้เปิดสิทธิ์เฉพาะหน้าต่างนั้นก่อน:
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\activate
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+หรือใช้ Command Prompt:
+
+```bat
+.venv\Scripts\activate.bat
 python -m pip install -r requirements.txt
 ```
+
+`requirements.txt` ระบุ `Flask>=3.0,<4` ส่วน ngspice ไม่ได้ติดตั้งผ่าน `pip`
+แอปเรียกโปรแกรม `ngspice_con` ผ่าน `PATH`
+
+### ติดตั้ง ngspice และตรวจสอบ `ngspice_con` ใน PATH
+
+1. ดาวน์โหลด Windows build จากหน้าอย่างเป็นทางการของ ngspice:
+   <https://ngspice.sourceforge.io/download.html>
+2. แตกไฟล์ไปยังโฟลเดอร์ที่ไม่มีช่องว่าง เช่น `C:\tools\ngspice-47`
+   และตรวจว่ามีไฟล์ `C:\tools\ngspice-47\bin\ngspice_con.exe`
+3. เพิ่มโฟลเดอร์ `bin` ลง `PATH` ของผู้ใช้ (เปิด terminal ใหม่หลังตั้งค่า):
+
+```powershell
+$ngspiceBin = "C:\tools\ngspice-47\bin"
+$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+[Environment]::SetEnvironmentVariable("Path", "$userPath;$ngspiceBin", "User")
+```
+
+หรือเพิ่มชั่วคราวเฉพาะหน้าต่าง terminal ปัจจุบัน:
+
+```powershell
+$env:Path += ";C:\tools\ngspice-47\bin"
+```
+
+4. ตรวจสอบว่าคำสั่งชี้ไปที่ ngspice จริง:
+
+```powershell
+Get-Command ngspice_con
+ngspice_con -v
+```
+
+ผลที่ถูกต้องจะแสดงเวอร์ชัน เช่น `ngspice-47` และ path ของ `ngspice_con.exe`
+ถ้าไม่พบคำสั่งนี้ แอปจะแสดง engine error และจะไม่สร้างผลลัพธ์ปลอม
+
+> หมายเหตุ: แอปใช้ `ngspice_con` (console build) ไม่ใช่ `ngspice` GUI
+> และเรียกเป็น `ngspice_con -b` ใน temporary directory ของแต่ละรอบ
 
 ### รันเซิร์ฟเวอร์ Flask
 
-วิธีง่ายสุด (Windows): ดับเบิลคลิก `start_app.bat` — เบราว์เซอร์จะเปิดเอง
-และให้เปิดหน้าต่าง terminal ค้างไว้ระหว่างใช้งาน (กด Ctrl+C เพื่อหยุด)
+วิธีง่ายสุด (Windows): ดับเบิลคลิก `start_app.bat` — สคริปต์จะติดตั้ง Flask
+ให้ถ้ายังไม่มี แล้วเปิดเบราว์เซอร์ให้เอง ให้เปิดหน้าต่าง terminal ค้างไว้
+ระหว่างใช้งาน (กด Ctrl+C เพื่อหยุด)
 
 ถ้ามีเซิร์ฟเวอร์รันอยู่แล้ว สคริปต์จะเปิดเบราว์เซอร์ให้ทันทีโดยไม่สตาร์ทซ้ำ
 ถ้าพอร์ต 5000 ถูกใช้อยู่ (เช่นโปรแกรมอื่น) จะเลือกพอร์ตว่างถัดไปให้อัตโนมัติ
 และพิมพ์ URL ที่ใช้จริงในหน้าต่างนั้น
 
-หรือรันใน terminal (หลังติดตั้งแพ็กเกจแล้ว):
+หรือรันเองใน terminal (หลัง activate venv และติดตั้งแพ็กเกจแล้ว):
 
-```
+```powershell
 python app.py
 ```
 
-ต้องเปิด terminal นี้ค้างไว้ตลอดการใช้งาน และเปิด http://127.0.0.1:5000/
+ต้องเปิด terminal นี้ค้างไว้ตลอดการใช้งาน แล้วเปิด
+<http://127.0.0.1:5000/> ในเบราว์เซอร์
 
-เปลี่ยนพอร์ตหรือให้เครื่องอื่นใน LAN เข้าถึงได้:
+เปลี่ยนพอร์ต ให้เครื่องอื่นใน LAN เข้าถึง หรือให้เบราว์เซอร์เปิดเอง:
 
+```powershell
+$env:PORT = "5001"
+$env:HOST = "0.0.0.0"
+$env:OPEN_BROWSER = "1"
+python app.py
 ```
+
+หรือใช้ Command Prompt:
+
+```bat
 set PORT=5001
 set HOST=0.0.0.0
+set OPEN_BROWSER=1
 python app.py
 ```
+
+### เปิดใช้งานในเบราว์เซอร์
+
+หลังเซิร์ฟเวอร์รันแล้ว เปิดได้ 2 หน้า:
+
+| หน้า | URL | ใช้ทำอะไร |
+| --- | --- | --- |
+| Lab 3 DC Bias | <http://127.0.0.1:5000/> | คำนวณ V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>, V<sub>CE</sub>, I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub> ด้วยสมการ analytical ของ Lab 3 |
+| CE Simulator v1 | <http://127.0.0.1:5000/ce-simulator> | รัน ngspice จริงสำหรับ `.op`, `.ac`, `.tran` และดูผล SPICE แยกจาก analytical reference |
+
+ขั้นตอนใช้งาน CE Simulator:
+
+1. เปิด `/ce-simulator`
+2. เลือก **Analysis Mode**: DC Operating Point, AC Frequency Response หรือ Transient
+3. ตรวจ/แก้ค่า V<sub>CC</sub>, R1, R2, R<sub>C</sub>, R<sub>E</sub>, R<sub>L</sub>, C<sub>in</sub>, C<sub>out</sub>, source amplitude/frequency
+4. กด **Run ngspice Simulation**
+5. อ่านผลจาก engine status (`ngspice_con`, model `Q2N2222`) และกราฟ/ตาราง
+6. จำไว้ว่า **Real ngspice output** กับการ์ด **Lab 3 analytical reference** เป็นคนละแหล่งข้อมูล
 
 ### วิธีใช้งาน 3 โหมด
 
@@ -90,6 +179,10 @@ python app.py
 
 ต้องติดตั้ง ngspice และมี `ngspice_con` อยู่ใน `PATH` ก่อนใช้งาน
 (ตรวจด้วยคำสั่ง `ngspice_con -v`)
+
+> หมายเหตุ: หน้า `/ce-simulator` ใช้ค่าดีฟอลต์ของ **Reference CE Stage**
+> โดยตรง ไม่มี dropdown แยกชื่อ “CE Reference” — หากต้องการรันเคสอ้างอิง
+> ให้คงค่าเริ่มต้นตามตารางด้านล่าง
 
 ค่าเริ่มต้นของวงจรอ้างอิง:
 
@@ -131,16 +224,43 @@ timeout, หรือผลลัพธ์มีค่า NaN/Inf ระบบ�
   ให้ใช้ `127.0.0.1` แทน
 - ถ้าเจอ `Address already in use` แปลว่ามีเซิร์ฟเวอร์รันอยู่แล้ว ให้เปิด
   http://127.0.0.1:5000/ ได้เลย หรือเปลี่ยนพอร์ต:
-  `set PORT=5001 && python app.py`
+  `$env:PORT = "5001"; python app.py` (PowerShell) หรือ
+  `set PORT=5001 && python app.py` (Command Prompt)
 - ถ้าเบราว์เซอร์ไม่เปิดเอง ให้ดูบรรทัด `Local:` ในหน้าต่าง terminal แล้วเปิด
   URL นั้น (ถ้าพอร์ต 5000 ไม่ว่าง URL อาจเป็น 5001, 5002, ...)
 - เปิดจากมือถือ/เครื่องอื่นในวง LAN ให้ใช้ URL บรรทัด `Network:` ที่พิมพ์ตอน
   สตาร์ท และอนุญาต Python ผ่าน Windows Firewall
 
-### Test
+### ตรวจสอบคุณภาพ (Tests)
 
-```
+รันชุดทดสอบทั้งหมดจากโฟลเดอร์โปรเจกต์ (หลัง activate venv):
+
+```powershell
 python -m unittest discover -s tests -t . -v
 ```
 
-ผลตรวจรับผ่าน Browser (ตาราง A1–A5) ดูได้ที่ [`docs/validation.md`](docs/validation.md)
+ชุดนี้ครอบคลุมสูตร Lab 3, การแปลงหน่วย, โหมด Fixed/Emitter/Divider, route และ API
+ของ CE Simulator, การ validate ค่าอินพุต และการเรียก ngspice จริง
+
+ทดสอบสมการไฟฟ้าแบบ regression แยกต่างหาก:
+
+```powershell
+python -m unittest test_electrical.py -v
+```
+
+ตรวจ syntax ของ JavaScript ฝั่งหน้าเว็บ (ต้องมี Node.js):
+
+```powershell
+node --check static/ce_sim.js
+```
+
+### หลักฐานการตรวจรับ
+
+- **Lab 3 (A1–A5):** ผลตรวจ DC Bias ผ่าน Browser อยู่ในหัวข้อแรกของ
+  [`docs/validation.md`](docs/validation.md)
+- **Lab 4 (B1–B8):** ตารางผลตรวจ CE Simulator v1 พร้อม ngspice-47, โมเดล
+  Q2N2222, ค่าที่วัดได้จริง และสถานะ PASS อยู่ในไฟล์เดียวกัน
+- **ภาพหลักฐาน:** ภาพหน้าจอทุกเคสอยู่ใน [`docs/captures/`](docs/captures/)
+  (`b1-*.png` ถึง `b8-mobile-390-ac.png`)
+- **กฎแหล่งที่มาของผลลัพธ์:** ดู [`AGENTS.md`](AGENTS.md) — แยกผล ngspice จริง
+  ออกจากค่าอ้างอิง analytical ของ Lab 3 อย่างชัดเจน

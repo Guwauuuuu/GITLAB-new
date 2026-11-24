@@ -6,7 +6,7 @@
 <title>CE Amplifier Simulator — ENG29 2121</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="ce-page">
 <div class="shell">
 
   <header class="app-header">
@@ -48,77 +48,85 @@
           <p class="circuit-note">Unbypassed R<sub>E</sub>, input C<sub>in</sub>, output C<sub>out</sub>, load R<sub>L</sub>.</p>
         </fieldset>
 
-        <div class="field">
-          <label for="vcc_v">V<sub>CC</sub> <span>(Supply)</span></label>
-          <div class="control">
-            <input id="vcc_v" type="number" step="any" name="vcc_v" value="{{ defaults.vcc_v }}">
-            <span class="unit">V</span>
+        <div class="form-group" role="group" aria-labelledby="bias-group-label">
+          <p class="group-label" id="bias-group-label">Bias network</p>
+
+          <div class="field">
+            <label for="vcc_v">V<sub>CC</sub> <span>(Supply)</span></label>
+            <div class="control">
+              <input id="vcc_v" type="number" step="any" name="vcc_v" value="{{ defaults.vcc_v }}">
+              <span class="unit">V</span>
+            </div>
+          </div>
+
+          {% for field, label, hint, unit_field, units in [
+            ('r1', 'R1', 'Upper divider', 'r1_unit', resistor_units),
+            ('r2', 'R2', 'Lower divider', 'r2_unit', resistor_units),
+            ('rc', 'RC', 'Collector', 'rc_unit', resistor_units),
+            ('re', 'RE', 'Unbypassed', 're_unit', resistor_units),
+            ('rl', 'RL', 'Load', 'rl_unit', resistor_units)
+          ] %}
+          <div class="field">
+            <label for="{{ field }}">{{ label }} <span>({{ hint }})</span></label>
+            <div class="control with-select">
+              <input id="{{ field }}" type="number" step="any" name="{{ field }}" value="{{ defaults[field] }}">
+              <select id="{{ unit_field }}" name="{{ unit_field }}" aria-label="{{ label }} unit">
+                {% for value, symbol in units %}
+                <option value="{{ value }}" {{ 'selected' if defaults[unit_field] == value else '' }}>{{ symbol }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group" role="group" aria-labelledby="source-group-label">
+          <p class="group-label" id="source-group-label">Coupling &amp; source</p>
+
+          {% for field, label, hint, unit_field, units in [
+            ('cin', 'Cin', 'Input coupling', 'cin_unit', cap_units),
+            ('cout', 'Cout', 'Output coupling', 'cout_unit', cap_units)
+          ] %}
+          <div class="field">
+            <label for="{{ field }}">{{ label }} <span>({{ hint }})</span></label>
+            <div class="control with-select">
+              <input id="{{ field }}" type="number" step="any" name="{{ field }}" value="{{ defaults[field] }}">
+              <select id="{{ unit_field }}" name="{{ unit_field }}" aria-label="{{ label }} unit">
+                {% for value, symbol in units %}
+                <option value="{{ value }}" {{ 'selected' if defaults[unit_field] == value else '' }}>{{ symbol }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          {% endfor %}
+
+          <div class="field">
+            <label for="source_amp">V<sub>in</sub> peak <span>(Sine)</span></label>
+            <div class="control with-select">
+              <input id="source_amp" type="number" step="any" name="source_amp" value="{{ defaults.source_amp }}">
+              <select id="source_amp_unit" name="source_amp_unit" aria-label="Source amplitude unit">
+                {% for value, symbol in amp_units %}
+                <option value="{{ value }}" {{ 'selected' if defaults.source_amp_unit == value else '' }}>{{ symbol }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="source_freq">Frequency <span>(Sine)</span></label>
+            <div class="control with-select">
+              <input id="source_freq" type="number" step="any" name="source_freq" value="{{ defaults.source_freq }}">
+              <select id="source_freq_unit" name="source_freq_unit" aria-label="Source frequency unit">
+                {% for value, symbol in freq_units %}
+                <option value="{{ value }}" {{ 'selected' if defaults.source_freq_unit == value else '' }}>{{ symbol }}</option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
         </div>
 
-        {% for field, label, hint, unit_field, units in [
-          ('r1', 'R1', 'Upper divider', 'r1_unit', resistor_units),
-          ('r2', 'R2', 'Lower divider', 'r2_unit', resistor_units),
-          ('rc', 'RC', 'Collector', 'rc_unit', resistor_units),
-          ('re', 'RE', 'Unbypassed', 're_unit', resistor_units),
-          ('rl', 'RL', 'Load', 'rl_unit', resistor_units)
-        ] %}
-        <div class="field">
-          <label for="{{ field }}">{{ label }} <span>({{ hint }})</span></label>
-          <div class="control with-select">
-            <input id="{{ field }}" type="number" step="any" name="{{ field }}" value="{{ defaults[field] }}">
-            <select id="{{ unit_field }}" name="{{ unit_field }}" aria-label="{{ label }} unit">
-              {% for value, symbol in units %}
-              <option value="{{ value }}" {{ 'selected' if defaults[unit_field] == value else '' }}>{{ symbol }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-        {% endfor %}
-
-        {% for field, label, hint, unit_field, units in [
-          ('cin', 'Cin', 'Input coupling', 'cin_unit', cap_units),
-          ('cout', 'Cout', 'Output coupling', 'cout_unit', cap_units)
-        ] %}
-        <div class="field">
-          <label for="{{ field }}">{{ label }} <span>({{ hint }})</span></label>
-          <div class="control with-select">
-            <input id="{{ field }}" type="number" step="any" name="{{ field }}" value="{{ defaults[field] }}">
-            <select id="{{ unit_field }}" name="{{ unit_field }}" aria-label="{{ label }} unit">
-              {% for value, symbol in units %}
-              <option value="{{ value }}" {{ 'selected' if defaults[unit_field] == value else '' }}>{{ symbol }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-        {% endfor %}
-
-        <div class="field">
-          <label for="source_amp">V<sub>in</sub> peak <span>(Sine)</span></label>
-          <div class="control with-select">
-            <input id="source_amp" type="number" step="any" name="source_amp" value="{{ defaults.source_amp }}">
-            <select id="source_amp_unit" name="source_amp_unit" aria-label="Source amplitude unit">
-              {% for value, symbol in amp_units %}
-              <option value="{{ value }}" {{ 'selected' if defaults.source_amp_unit == value else '' }}>{{ symbol }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="source_freq">Frequency <span>(Sine)</span></label>
-          <div class="control with-select">
-            <input id="source_freq" type="number" step="any" name="source_freq" value="{{ defaults.source_freq }}">
-            <select id="source_freq_unit" name="source_freq_unit" aria-label="Source frequency unit">
-              {% for value, symbol in freq_units %}
-              <option value="{{ value }}" {{ 'selected' if defaults.source_freq_unit == value else '' }}>{{ symbol }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-
-        <fieldset class="analytical-field">
-          <legend>Lab 3 Analytical Reference <span>(display only)</span></legend>
+        <div class="form-group analytical-group" role="group" aria-labelledby="analytical-group-label">
+          <p class="group-label" id="analytical-group-label">Lab 3 Analytical Reference <span>(display only)</span></p>
           <div class="field">
             <label for="beta">&#946; <span>(Analytical)</span></label>
             <div class="control">
@@ -134,9 +142,13 @@
             </div>
           </div>
           <p class="circuit-note">The reference uses the Lab 3 &beta;/V<sub>BE</sub> equations. SPICE uses the 2N2222 Gummel-Poon model.</p>
-        </fieldset>
+        </div>
 
         <button id="ce-run" type="submit">Run ngspice Simulation</button>
+        <div id="run-status" class="run-status idle" aria-hidden="true">
+          <span class="run-status-dot"></span>
+          <span id="run-status-text">Ready</span>
+        </div>
       </form>
     </section>
 
@@ -222,7 +234,7 @@
         <line class="wire" x1="234" y1="362" x2="238" y2="362"/>
         <text class="lbl" x="258" y="355" font-size="14">GND</text>
 
-        <text class="lbl-muted" x="300" y="300" font-size="13">V<tspan baseline-shift="sub" font-size="10">CE</tspan> = ?</text>
+        <text class="lbl-muted" x="300" y="300" font-size="13">V<tspan baseline-shift="sub" font-size="10">CE</tspan><tspan data-ce-slot="vce">&#160;= ?</tspan></text>
       </svg>
       <p class="circuit-note">Real ngspice netlist: voltage-divider bias, unbypassed R<sub>E</sub>, no emitter bypass capacitor.</p>
 
@@ -237,6 +249,7 @@
 
     <section class="panel reference-panel" aria-labelledby="ce-ref-title">
       <h2 id="ce-ref-title"><span class="panel-icon" aria-hidden="true">&#8776;</span> Lab 3 Analytical Reference</h2>
+      <p class="panel-note">DC bias only. The <code>.ac</code> and <code>.tran</code> plots are real SPICE output and are not derived from this reference.</p>
       <div id="analytical-empty" class="empty-state">
         <p>SPICE results and the Lab 3 reference appear here after a run.</p>
         <p class="muted">Reference model: &beta; = {{ defaults.beta }}, V<sub>BE</sub> = {{ defaults.vbe_v }} V.</p>
@@ -300,8 +313,8 @@
         <h3 class="results-heading">AC Frequency Response — real ngspice <code>.ac</code></h3>
         <p class="source-tag">Vin reference: <span id="ac-vin-ref">{{ vin_reference }}</span></p>
         <div class="summary-row">
-          <div class="summary-chip"><span>Midband gain</span><strong id="ac-midband-gain">—</strong></div>
-          <div class="summary-chip"><span>Midband gain</span><strong id="ac-midband-db">—</strong></div>
+          <div class="summary-chip"><span>Voltage gain</span><strong id="ac-midband-gain">—</strong></div>
+          <div class="summary-chip"><span>Gain (dB)</span><strong id="ac-midband-db">—</strong></div>
           <div class="summary-chip"><span>Midband phase</span><strong id="ac-midband-phase">—</strong></div>
           <div class="summary-chip"><span>&minus;3 dB band</span><strong id="ac-band">—</strong></div>
         </div>
