@@ -5,13 +5,17 @@
       "playwright": {
         "type": "local",
         "command": [
-          "npx",
+          "C:\\Program Files\\nodejs\\node.exe",
+          "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js",
           "-y",
           "@playwright/mcp@latest",
           "--browser",
           "chrome",
           "--isolated"
-        ]
+        ],
+        "environment": {
+          "PATH": "{env:PATH};C:\\Program Files\\nodejs"
+        }
       }
     }
   }
