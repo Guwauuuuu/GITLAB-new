@@ -82,6 +82,47 @@ python app.py
 - ถ้าค่าไม่ถูกต้อง หน้าเว็บจะแสดงข้อความแจ้งเตือนและคงค่าที่กรอกไว้ให้แก้
 - ผลลัพธ์จะบอกภูมิภาคการทำงาน: active / saturation / cutoff
 
+### Common-Emitter Amplifier Simulator (ngspice)
+
+หน้า `/ce-simulator` ต่อยอดจาก Lab 3 โดยรัน **ngspice จริง** ผ่าน
+`ngspice_con -b` สำหรับวงจร common-emitter แบบ voltage-divider bias ที่มี
+`RE` ต่อลงกราวด์โดยไม่ขนาน bypass capacitor พร้อม `Cin`, `Cout` และ `RL`
+
+ต้องติดตั้ง ngspice และมี `ngspice_con` อยู่ใน `PATH` ก่อนใช้งาน
+(ตรวจด้วยคำสั่ง `ngspice_con -v`)
+
+ค่าเริ่มต้นของวงจรอ้างอิง:
+
+| พารามิเตอร์ | ค่าเริ่มต้น |
+| --- | --- |
+| V<sub>CC</sub> | 12 V |
+| R1 / R2 | 100 kΩ / 22 kΩ |
+| R<sub>C</sub> / R<sub>E</sub> | 2.2 kΩ / 1 kΩ (ไม่ bypass) |
+| R<sub>L</sub> | 10 kΩ |
+| C<sub>in</sub> / C<sub>out</sub> | 10 µF / 10 µF |
+| แหล่งสัญญาณ | 10 mV peak, 1 kHz sine |
+| โมเดล BJT | Q2N2222 (Gummel-Poon ของ ngspice) |
+
+โหมดการวิเคราะห์:
+
+- **DC Operating Point (`.op`)** — ค่า V<sub>B</sub>, V<sub>E</sub>, V<sub>C</sub>,
+  V<sub>CE</sub>, I<sub>B</sub>, I<sub>C</sub> จาก SPICE พร้อมสถานะ
+  active / saturation / cutoff
+- **AC Frequency Response (`.ac`)** — กวาดความถี่ 10 Hz ถึง 10 MHz
+  พล็อต Gain Magnitude (dB) และ Phase (องศา) โดย `Vin` อ้างอิงคือแหล่งจ่าย
+  AC 1 V ที่โหนดก่อน `Cin` (จึงได้ |Vout/Vin| โดยตรง)
+- **Transient (`.tran`)** — จำลอง SIN source ที่ปรับแอมพลิจูดและความถี่ได้
+  พล็อต Vin(t) และ Vout(t) ให้เห็นการกลับเฟส 180°
+
+ผลจาก SPICE จะแสดงแยกจาก **ค่าอ้างอิงเชิงวิเคราะห์ของ Lab 3** (`bjt.py`)
+อย่างชัดเจน โดยค่าอ้างอิงใช้ β/V<sub>BE</sub> ที่กรอกในฟอร์ม ไม่ใช่โมเดล
+Q2N2222 ของ SPICE
+
+ทุกครั้งที่รัน ระบบจะล้างกราฟและผลลัพธ์เดิมก่อน แล้วแสดงสถานะ
+Running → Success/Error พร้อมชื่อ engine และโมเดล หาก ngspice ผิดพลาด,
+timeout, หรือผลลัพธ์มีค่า NaN/Inf ระบบจะรายงาน error ตามจริงและไม่วาดกราฟ
+หลอก ค่าที่ไม่ถูกต้อง เช่น R<sub>E</sub> = 0 จะถูกปฏิเสธก่อนเรียก ngspice
+
 ### ถ้าเปิดเว็บไม่ได้
 
 - ต้องรัน `start_app.bat` หรือ `python app.py` ค้างไว้ก่อน อย่าปิดหน้าต่าง terminal
